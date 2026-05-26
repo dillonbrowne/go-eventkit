@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // --- JSON generators ---
 
-func stringPtr(s string) *string { return &s }
+func stringPtr(s string) *string    { return &s }
 func float64Ptr(f float64) *float64 { return &f }
 
 func generateCalendarsJSON(count int) string {

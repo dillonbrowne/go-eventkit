@@ -398,3 +398,18 @@ func (c *Client) WatchChanges(ctx context.Context) (<-chan struct{}, error) {
 	}()
 	return ch, nil
 }
+
+// DefaultCalendar returns the calendar EventKit uses for new events when
+// no calendar is specified. Returns nil if no default is available.
+func (c *Client) DefaultCalendar() (*Calendar, error) {
+	res := C.ek_cal_default_calendar()
+	if res.error != nil {
+		return nil, fmt.Errorf("calendar: %w", resultErr(res))
+	}
+	defer C.ek_cal_free(res.result)
+	jsonStr := C.GoString(res.result)
+	if jsonStr == "null" || jsonStr == "" {
+		return nil, nil
+	}
+	return parseSingleCalendarJSON(jsonStr)
+}

@@ -544,6 +544,32 @@ static EKReminder* find_reminder_by_id(NSString* targetId) {
     return nil;
 }
 
+// resolve_reminder_for_write returns an EKReminder whose object identity
+// is attached to the current EKEventStore — required on macOS 26+ for
+// removeReminder:/saveReminder: to succeed. The async fetch path
+// (find_reminder_by_id) returns objects bound to the fetch's internal
+// queue context; passing those to removeReminder: surfaces error 29
+// (EKErrorEventStoreNotAuthorized) even though the user has full access.
+//
+// Strategy: try the synchronous calendarItemWithIdentifier: API first
+// for full-id lookups; fall back to find_reminder_by_id for prefix
+// matches and re-attach the result.
+static EKReminder* resolve_reminder_for_write(EKEventStore* store, NSString* targetId) {
+    EKCalendarItem* item = [store calendarItemWithIdentifier:targetId];
+    if ([item isKindOfClass:[EKReminder class]]) {
+        return (EKReminder*)item;
+    }
+    EKReminder* candidate = find_reminder_by_id(targetId);
+    if (!candidate) {
+        return nil;
+    }
+    EKCalendarItem* reattached = [store calendarItemWithIdentifier:candidate.calendarItemIdentifier];
+    if ([reattached isKindOfClass:[EKReminder class]]) {
+        return (EKReminder*)reattached;
+    }
+    return candidate;
+}
+
 // --- Public API ---
 
 ek_result_t ek_rem_request_access(void) {
@@ -906,7 +932,7 @@ ek_result_t ek_rem_update_reminder(const char* reminder_id, const char* json_inp
             }
 
             EKEventStore* store = get_store();
-            EKReminder* reminder = find_reminder_by_id([NSString stringWithUTF8String:reminder_id]);
+            EKReminder* reminder = resolve_reminder_for_write(store, [NSString stringWithUTF8String:reminder_id]);
             if (!reminder) {
                 res.error = strdup([[NSString stringWithFormat:@"reminder not found: %s", reminder_id] UTF8String]);
                 return;
@@ -1135,7 +1161,7 @@ ek_result_t ek_rem_delete_reminders(const char* json_ids) {
             NSMutableDictionary* errors = [NSMutableDictionary dictionary];
 
             for (NSString* rid in ids) {
-                EKReminder* reminder = find_reminder_by_id(rid);
+                EKReminder* reminder = resolve_reminder_for_write(store, rid);
                 if (!reminder) continue; // silently skip not found
 
                 NSError* removeError = nil;
@@ -1162,7 +1188,7 @@ ek_result_t ek_rem_delete_reminder(const char* reminder_id) {
             }
 
             EKEventStore* store = get_store();
-            EKReminder* reminder = find_reminder_by_id([NSString stringWithUTF8String:reminder_id]);
+            EKReminder* reminder = resolve_reminder_for_write(store, [NSString stringWithUTF8String:reminder_id]);
             if (!reminder) {
                 res.error = strdup([[NSString stringWithFormat:@"reminder not found: %s", reminder_id] UTF8String]);
                 return;
@@ -1424,7 +1450,7 @@ ek_result_t ek_rem_complete_reminder(const char* reminder_id) {
             }
 
             EKEventStore* store = get_store();
-            EKReminder* reminder = find_reminder_by_id([NSString stringWithUTF8String:reminder_id]);
+            EKReminder* reminder = resolve_reminder_for_write(store, [NSString stringWithUTF8String:reminder_id]);
             if (!reminder) {
                 res.error = strdup([[NSString stringWithFormat:@"reminder not found: %s", reminder_id] UTF8String]);
                 return;
@@ -1457,7 +1483,7 @@ ek_result_t ek_rem_uncomplete_reminder(const char* reminder_id) {
             }
 
             EKEventStore* store = get_store();
-            EKReminder* reminder = find_reminder_by_id([NSString stringWithUTF8String:reminder_id]);
+            EKReminder* reminder = resolve_reminder_for_write(store, [NSString stringWithUTF8String:reminder_id]);
             if (!reminder) {
                 res.error = strdup([[NSString stringWithFormat:@"reminder not found: %s", reminder_id] UTF8String]);
                 return;
@@ -1478,4 +1504,19 @@ ek_result_t ek_rem_uncomplete_reminder(const char* reminder_id) {
         }
     });
     return res;
+}
+
+ek_result_t ek_rem_default_list(void) {
+    @autoreleasepool {
+        ek_result_t res = {NULL, NULL};
+        EKEventStore* store = get_store();
+        EKCalendar* cal = [store defaultCalendarForNewReminders];
+        if (!cal) {
+            res.result = strdup("null");
+            return res;
+        }
+        res.result = to_json(list_to_dict(cal, 0));
+        if (!res.result) res.error = strdup("JSON serialization failed");
+        return res;
+    }
 }

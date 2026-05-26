@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
-	"github.com/BRO3886/go-eventkit/calendar"
+	"github.com/dillonbrowne/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit/calendar"
 )
 
 func main() {

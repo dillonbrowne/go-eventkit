@@ -39,7 +39,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/BRO3886/go-eventkit/calendar"
+	"github.com/dillonbrowne/go-eventkit/calendar"
 )
 
 // snapshot is a lightweight in-memory record of an event.

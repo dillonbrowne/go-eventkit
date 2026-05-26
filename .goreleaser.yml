@@ -1,0 +1,145 @@
+# .goreleaser.yml — release pipeline for eventkit-server + bundle-app.
+#
+# Each tag push to v*.*.* triggers release.yml which runs goreleaser with
+# this config. The result:
+#   - darwin/arm64 + darwin/amd64 binaries built with -trimpath and the
+#     version injected into internal/version.Version via ldflags.
+#   - Two archives per platform: the bare binary and a signed .app bundle
+#     produced by cmd/bundle-app (matches what we recommend for TCC UX).
+#   - A GitHub Release containing all archives + a checksums.txt.
+#   - The Formula/eventkit-server.rb in this repo is rewritten to point
+#     at the new release tarball, and committed back to main.
+#
+# Apple Developer ID signing / notarization is intentionally not wired
+# in. The bundle inside the .app archive is ad-hoc signed by
+# cmd/bundle-app. Add `notarize: ...` when a paid Developer ID is
+# available.
+
+version: 2
+
+project_name: eventkit-server
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: eventkit-server
+    main: ./cmd/eventkit-server
+    binary: eventkit-server
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/dillonbrowne/go-eventkit/internal/version.Version=v{{.Version}}
+    goos:
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+  - id: bundle-app
+    main: ./cmd/bundle-app
+    binary: bundle-app
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/dillonbrowne/go-eventkit/internal/version.Version=v{{.Version}}
+    goos:
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+  - id: eventkit-mcp
+    main: ./cmd/eventkit-mcp
+    binary: eventkit-mcp
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/dillonbrowne/go-eventkit/internal/version.Version=v{{.Version}}
+    goos:
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+
+archives:
+  - id: bare
+    builds:
+      - eventkit-server
+      - bundle-app
+      - eventkit-mcp
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE
+      - policy.example.yaml
+      - docs/operator-playbook.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "Merge pull request"
+
+release:
+  github:
+    owner: dillonbrowne
+    name: go-eventkit
+  draft: false
+  prerelease: auto
+  header: |
+    ## eventkit-server v{{.Version}}
+
+    Localhost REST API + MCP foundation for macOS Calendar and Reminders.
+
+    See the [operator playbook](docs/operator-playbook.md) for install + TCC
+    walkthrough and the [MCP threat doc](docs/prd/mcp-threats.md) for
+    agent-specific risks.
+
+# Update the formula in this same repo on every release. The repo doubles
+# as the homebrew tap — consumers do `brew tap dillonbrowne/go-eventkit
+# https://github.com/dillonbrowne/go-eventkit.git`.
+brews:
+  - name: eventkit-server
+    ids: [bare]
+    repository:
+      owner: dillonbrowne
+      name: go-eventkit
+      branch: main
+    directory: Formula
+    homepage: https://github.com/dillonbrowne/go-eventkit
+    description: Localhost REST API + MCP foundation for macOS Calendar and Reminders
+    license: MIT
+    install: |
+      bin.install "eventkit-server"
+      bin.install "bundle-app"
+      bin.install "eventkit-mcp"
+      (etc/"eventkit-server").install "policy.example.yaml"
+    caveats: |
+      First launch pops the Calendar and Reminders TCC dialogs — click
+      Allow on each. See docs/operator-playbook.md in the source repo.
+
+      To run the AI-native MCP server:
+        brew services start eventkit-mcp
+      It listens on 127.0.0.1:8766 with no auth. Front it with a tunnel
+      (Cloudflare Tunnel, Tailscale Funnel, etc.) if you need remote
+      access — auth is the operator's responsibility.
+    service: |
+      run [opt_bin/"eventkit-server", "--listen", "127.0.0.1:8765"]
+      keep_alive true
+      log_path var/"log/eventkit-server.log"
+      error_log_path var/"log/eventkit-server.log"
+    test: |
+      assert_match "Usage", shell_output("#{bin}/eventkit-server --help 2>&1", 2)
+      assert_match "Usage", shell_output("#{bin}/eventkit-mcp    --help 2>&1", 2)

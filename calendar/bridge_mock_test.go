@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // These tests use a mock bridge layer to test the Client method logic

@@ -9,3 +9,7 @@ coverage.out
 
 # Journals (symlink to ~/projects/work-journals/go-eventkit)
 journals
+
+# Project-scoped MCP config — points at a per-developer localhost setup,
+# not portable across machines.
+.mcp.json

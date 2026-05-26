@@ -415,3 +415,18 @@ func (c *Client) WatchChanges(ctx context.Context) (<-chan struct{}, error) {
 	}()
 	return ch, nil
 }
+
+// DefaultList returns the reminder list EventKit uses for new reminders
+// when none is specified. Returns nil if no default is available.
+func (c *Client) DefaultList() (*List, error) {
+	res := C.ek_rem_default_list()
+	if res.error != nil {
+		return nil, fmt.Errorf("reminders: %w", resultErr(res))
+	}
+	defer C.ek_rem_free(res.result)
+	jsonStr := C.GoString(res.result)
+	if jsonStr == "null" || jsonStr == "" {
+		return nil, nil
+	}
+	return parseSingleListJSON(jsonStr)
+}

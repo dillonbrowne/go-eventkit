@@ -4,7 +4,7 @@
 
 **go-eventkit** is a Go library providing native macOS EventKit bindings via cgo + Objective-C. It exposes idiomatic Go types and a public client API for Calendar events and Reminders, backed by Apple's EventKit framework for in-process, sub-200ms access.
 
-**Repository**: `github.com/BRO3886/go-eventkit`
+**Repository**: `github.com/dillonbrowne/go-eventkit`
 
 ## Problem
 
@@ -45,7 +45,7 @@ There is no Go library for accessing macOS Calendar and Reminders natively. Deve
 ### Package Structure
 
 ```
-github.com/BRO3886/go-eventkit
+github.com/dillonbrowne/go-eventkit
 ├── calendar/                    # Public: Calendar event bindings
 │   ├── calendar.go              # Go types: Event, Calendar, Client, options
 │   ├── bridge_darwin.go         # cgo wrappers (//go:build darwin)
@@ -349,7 +349,7 @@ These are conservative — `rem` achieves 106-168ms for equivalent operations.
 
 ## Success Criteria
 
-1. `go get github.com/BRO3886/go-eventkit/calendar` works with no external dependencies beyond Xcode CLT
+1. `go get github.com/dillonbrowne/go-eventkit/calendar` works with no external dependencies beyond Xcode CLT
 2. All CRUD operations work against real macOS Calendar
 3. Sees all calendar accounts (iCloud, Google, Exchange, local) — not just local like AppleScript
 4. Sub-200ms for all operations
@@ -362,4 +362,4 @@ These are conservative — `rem` achieves 106-168ms for equivalent operations.
 2. **Structured locations** — EventKit supports `EKStructuredLocation` with coordinates and geofence radius. Worth exposing in v1, or just the string `location`?
 3. **Multiple alerts** — Events can have multiple alarms. Support `[]Alert` from day one, or start with a single alert?
 4. **Context variants** — should methods have `Context`-aware versions (e.g., `EventsContext(ctx, start, end)`) for cancellation? The ObjC semaphore blocks the goroutine, so context cancellation would require a separate goroutine + select.
-5. **Module name** — `github.com/BRO3886/go-eventkit` confirmed? Or a GitHub org?
+5. **Module name** — `github.com/dillonbrowne/go-eventkit` confirmed? Or a GitHub org?

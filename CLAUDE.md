@@ -3,7 +3,7 @@
 ## What is this?
 A Go library providing native macOS EventKit bindings via cgo + Objective-C. Exposes idiomatic Go types and a public client API for Calendar events and Reminders. In-process, sub-200ms access — no AppleScript, no subprocesses.
 
-**Repository**: `github.com/BRO3886/go-eventkit`
+**Repository**: `github.com/dillonbrowne/go-eventkit`
 
 ## Non-Negotiables
 - **Conventional Commits**: ALL commits MUST follow [Conventional Commits](https://www.conventionalcommits.org/). Format: `type(scope): description`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`. No exceptions.
@@ -49,12 +49,38 @@ go-eventkit/
 │   └── watch-demo/              # Demo: producer + consumer across two processes
 │       ├── consumer/main.go     # Watches calendar changes, diffs and prints what changed
 │       └── producer/main.go     # Creates, updates, deletes an event with pauses
+├── server/                      # Public: REST API + defense-in-depth scoping (v0.7.0)
+│   ├── server.go                # Server, New(opts), Handler()
+│   ├── options.go               # ServerOption funcs
+│   ├── bridge.go                # CalendarBridge / RemindersBridge (mocking seam)
+│   ├── policy/                  # YAML allowlist (Mode, Policy, Load)
+│   ├── scoped/                  # ScopedCalendar / ScopedReminders — every read/write re-checks policy
+│   ├── handlers/                # huma operation registrations + DTOs
+│   ├── middleware/              # Loopback, BodyLimit, Audit
+│   └── testfakes/               # In-memory bridges for tests/integration
+├── cmd/eventkit-server/         # Binary: localhost REST API
+│   └── main.go                  # Flag parsing, optional --policy (default = TCC defaults only), signal handling
+├── cmd/bundle-app/              # Binary: wraps a Go executable in a signed macOS .app for TCC
+│   ├── main.go
+│   └── main_test.go             # Cross-platform tests (skip codesign)
+├── cmd/eventkit-mcp/            # Binary: Streamable HTTP MCP server (v0.1.0 fork)
+│   └── main.go                  # Flags + env-var fallback; loopback only; no auth
+├── mcp/                         # MCP server library (importable)
+│   ├── server.go                # New(...Option) returns http.Handler
+│   ├── options.go               # WithAPIBase, WithAPITimeout, …
+│   ├── client/                  # typed HTTP client to eventkit-server REST
+│   └── tools/                   # 24 tool definitions + redact + dates + annotations
+├── homebrew/
+│   ├── Formula/eventkit-server.rb  # Brew formula with `brew services` integration
+│   └── README.md                # Tap setup + service tuning
+├── policy.example.yaml          # Example allowlist for eventkit-server
 ├── docs/
 │   ├── prd/
 │   │   ├── go-eventkit-prd.md              # Full PRD with API design
 │   │   ├── concurrency-prd.md              # Deferred concurrency improvements (3 phases)
 │   │   ├── recurrence-location-prd.md      # Recurrence rules & structured locations (DONE)
 │   │   ├── change-notifications-prd.md     # WatchChanges API (DONE — v0.3.0)
+│   │   ├── rest-api-prd.md                 # REST API + scoping (DONE — v0.7.0)
 │   │   ├── benchmarking-prd.md             # Performance benchmarking (planned)
 │   │   └── future-capabilities-prd.md      # Deferred capabilities (10 items)
 │   └── research/
@@ -73,6 +99,7 @@ go-eventkit/
 - **Concurrency safety** (v0.4.0): Inline error returns (`ek_result_t`), serial write queue (`dispatch_sync`), non-blocking WatchChanges pipe reads. `RecurrenceRule.Validate()` catches invalid constraints. Batch delete: `DeleteEvents(ids, span)`, `DeleteReminders(ids)`. Better "not found" errors include available names.
 - **URL attachments** (v0.5.0): Reminder URLs write to the real Reminders.app URL field via ReminderKit private API introspection.
 - **Suppress default alarms** (v0.6.0): `CreateEventInput.SuppressDefaultAlarms` bool opts out of calendar-inherited default alarms at save time. Bridge clears `event.alarms` before adding user-supplied alerts.
+- **REST server + scoping** (v0.7.0): `server/` package exposes the library as a localhost REST API with an OpenAPI 3.1 spec (huma v2). All reads and writes pass a YAML allowlist policy enforced at every layer: HTTP middleware (loopback only), policy gate (ID + source), post-fetch re-verification (catches "EventKit wrote to the wrong calendar"). The `cmd/eventkit-server` binary refuses to start without `--policy` and refuses non-loopback bind without `--insecure-bind`. Foundation for an MCP server. See `docs/prd/rest-api-prd.md`. New deps: `github.com/danielgtaylor/huma/v2`, `github.com/go-chi/chi/v5`, `gopkg.in/yaml.v3` — first third-party deps in the project, called out in the PRD.
 - **Deferred**: Future frameworks (Contacts, etc.) — out of scope for now
 - **Deferred**: Performance benchmarking — see `docs/prd/benchmarking-prd.md`
 - **Deferred**: 10 future capabilities — see `docs/prd/future-capabilities-prd.md`
@@ -81,6 +108,7 @@ go-eventkit/
 - `dispatch_once` for EKEventStore singleton + TCC access request — **each package has its own singleton** (C objects can't cross cgo package boundaries)
 - **Serial write queue**: All write operations (`saveEvent`, `removeEvent`, `saveCalendar`, `removeCalendar`, `saveReminder`, `removeReminder`) are wrapped in `dispatch_sync` on a per-package serial queue (`dev.sidv.eventkit.cal.writes` / `dev.sidv.eventkit.rem.writes`). Reads (`eventsMatchingPredicate`, `calendarsForEntityType`, `fetchRemindersMatchingPredicate`) stay concurrent. This prevents EventKit database corruption from concurrent goroutine writes.
 - **Inline error returns (`ek_result_t`)**: All bridge functions return a struct with `result` + `error` fields. No `__thread` TLS — safe under Go's M:N scheduler.
+- **macOS 26 (Tahoe) reminder write fix**: `fetchRemindersMatchingPredicate:` returns `EKReminder` objects bound to its own callback queue context. On macOS 26+, passing those to `saveReminder:` / `removeReminder:` returns `EKErrorEventStoreNotAuthorized` (error 29) even when full access is granted. The reminders bridge wraps every write-path lookup in `resolve_reminder_for_write()` (bridge_darwin.m) which prefers the synchronous `[store calendarItemWithIdentifier:]` API and falls back to the prefix-matching async fetch only for non-UUID inputs (re-attaching the result before returning). Update, Complete, Uncomplete, Delete, and batch Delete all go through this helper. Calendar events are unaffected — `eventWithIdentifier:` already returns attached objects.
 - `dispatch_semaphore` for sync wrappers around async EventKit APIs (reminders fetch is async; calendar fetch is synchronous)
 - Calendar writes via EventKit directly (`saveEvent:span:commit:`) — no AppleScript needed
 - Calendar/list container CRUD via `saveCalendar:commit:` / `removeCalendar:commit:` — color via `CGColorCreateGenericRGB()`, source is **required** (no default fallback), immutability check via `cal.isImmutable`
@@ -113,13 +141,21 @@ go-eventkit/
 ## Build & Test
 ```bash
 go build ./...              # Compiles ObjC via cgo automatically
-go test ./...               # Unit tests (JSON parsing, types)
+go test ./...               # Unit tests + REST/MCP e2e (server/e2e_test.go + mcp/e2e_test.go)
+go test -race ./...         # Same, with race detector — must be clean before PR
 GOOS=linux CGO_ENABLED=0 go build ./...  # Verify cross-platform stubs
 go run ./scripts/integration.go              # Calendar integration tests (35 tests)
 go run ./scripts/integration_reminders.go    # Reminder integration tests (34 tests)
+go run -tags integration ./scripts/integration_server.go  # REST server HTTP roundtrip + policy denial
 # Watch demo (two terminals):
 go run ./scripts/watch-demo/consumer         # Terminal 1: watches for changes
 go run ./scripts/watch-demo/producer         # Terminal 2: creates/updates/deletes event
+
+# Run the REST server binary:
+go run ./cmd/eventkit-server --policy ./policy.example.yaml
+# Then in another terminal:
+curl http://127.0.0.1:8765/openapi.json | jq '.info'
+open  http://127.0.0.1:8765/docs                # huma's Swagger UI
 ```
 Test coverage ceiling is ~55-57% because cgo bridge functions (bridge_darwin.go) can't be reached by `go test`. All testable code (types, parsing, marshaling) achieves ~100% coverage.
 

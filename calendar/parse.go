@@ -5,34 +5,34 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // rawEvent is the intermediate JSON representation from the ObjC bridge.
 type rawEvent struct {
-	ID                 string                `json:"id"`
-	Title              string                `json:"title"`
-	StartDate          *string               `json:"startDate"`
-	EndDate            *string               `json:"endDate"`
-	AllDay             bool                  `json:"allDay"`
-	Location           *string               `json:"location"`
-	Notes              *string               `json:"notes"`
-	URL                *string               `json:"url"`
-	Calendar           string                `json:"calendar"`
-	CalendarID         string                `json:"calendarID"`
-	Status             int                   `json:"status"`
-	Availability       int                   `json:"availability"`
-	Organizer          *string               `json:"organizer"`
-	Attendees          []rawAttendee         `json:"attendees"`
-	Recurring          bool                  `json:"recurring"`
-	RecurrenceRules    []rawRecurrenceRule   `json:"recurrenceRules"`
-	IsDetached         bool                  `json:"isDetached"`
-	OccurrenceDate     *string               `json:"occurrenceDate"`
+	ID                 string                 `json:"id"`
+	Title              string                 `json:"title"`
+	StartDate          *string                `json:"startDate"`
+	EndDate            *string                `json:"endDate"`
+	AllDay             bool                   `json:"allDay"`
+	Location           *string                `json:"location"`
+	Notes              *string                `json:"notes"`
+	URL                *string                `json:"url"`
+	Calendar           string                 `json:"calendar"`
+	CalendarID         string                 `json:"calendarID"`
+	Status             int                    `json:"status"`
+	Availability       int                    `json:"availability"`
+	Organizer          *string                `json:"organizer"`
+	Attendees          []rawAttendee          `json:"attendees"`
+	Recurring          bool                   `json:"recurring"`
+	RecurrenceRules    []rawRecurrenceRule    `json:"recurrenceRules"`
+	IsDetached         bool                   `json:"isDetached"`
+	OccurrenceDate     *string                `json:"occurrenceDate"`
 	StructuredLocation *rawStructuredLocation `json:"structuredLocation"`
-	Alerts             []rawAlert            `json:"alerts"`
-	CreatedAt          *string               `json:"createdAt"`
-	ModifiedAt         *string               `json:"modifiedAt"`
-	TimeZone           *string               `json:"timeZone"`
+	Alerts             []rawAlert             `json:"alerts"`
+	CreatedAt          *string                `json:"createdAt"`
+	ModifiedAt         *string                `json:"modifiedAt"`
+	TimeZone           *string                `json:"timeZone"`
 }
 
 type rawAttendee struct {
@@ -55,15 +55,15 @@ type rawCalendar struct {
 }
 
 type rawRecurrenceRule struct {
-	Frequency       int                    `json:"frequency"`
-	Interval        int                    `json:"interval"`
+	Frequency       int                      `json:"frequency"`
+	Interval        int                      `json:"interval"`
 	DaysOfTheWeek   []rawRecurrenceDayOfWeek `json:"daysOfTheWeek,omitempty"`
-	DaysOfTheMonth  []int                  `json:"daysOfTheMonth,omitempty"`
-	MonthsOfTheYear []int                  `json:"monthsOfTheYear,omitempty"`
-	WeeksOfTheYear  []int                  `json:"weeksOfTheYear,omitempty"`
-	DaysOfTheYear   []int                  `json:"daysOfTheYear,omitempty"`
-	SetPositions    []int                  `json:"setPositions,omitempty"`
-	End             *rawRecurrenceEnd      `json:"end,omitempty"`
+	DaysOfTheMonth  []int                    `json:"daysOfTheMonth,omitempty"`
+	MonthsOfTheYear []int                    `json:"monthsOfTheYear,omitempty"`
+	WeeksOfTheYear  []int                    `json:"weeksOfTheYear,omitempty"`
+	DaysOfTheYear   []int                    `json:"daysOfTheYear,omitempty"`
+	SetPositions    []int                    `json:"setPositions,omitempty"`
+	End             *rawRecurrenceEnd        `json:"end,omitempty"`
 }
 
 type rawRecurrenceDayOfWeek struct {
@@ -247,6 +247,21 @@ func parseEventJSON(jsonStr string) (*Event, error) {
 	return &e, nil
 }
 
+func parseSingleCalendarJSON(jsonStr string) (*Calendar, error) {
+	var r rawCalendar
+	if err := json.Unmarshal([]byte(jsonStr), &r); err != nil {
+		return nil, fmt.Errorf("calendar: failed to parse calendar JSON: %w", err)
+	}
+	return &Calendar{
+		ID:       r.ID,
+		Title:    r.Title,
+		Type:     CalendarType(r.Type),
+		Color:    r.Color,
+		Source:   r.Source,
+		ReadOnly: r.ReadOnly,
+	}, nil
+}
+
 func parseCalendarsJSON(jsonStr string) ([]Calendar, error) {
 	var raw []rawCalendar
 	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {
@@ -290,15 +305,15 @@ type alertJSON struct {
 }
 
 type recurrenceRuleJSON struct {
-	Frequency       int                        `json:"frequency"`
-	Interval        int                        `json:"interval"`
-	DaysOfTheWeek   []recurrenceDayOfWeekJSON  `json:"daysOfTheWeek,omitempty"`
-	DaysOfTheMonth  []int                      `json:"daysOfTheMonth,omitempty"`
-	MonthsOfTheYear []int                      `json:"monthsOfTheYear,omitempty"`
-	WeeksOfTheYear  []int                      `json:"weeksOfTheYear,omitempty"`
-	DaysOfTheYear   []int                      `json:"daysOfTheYear,omitempty"`
-	SetPositions    []int                      `json:"setPositions,omitempty"`
-	End             *recurrenceEndJSON         `json:"end,omitempty"`
+	Frequency       int                       `json:"frequency"`
+	Interval        int                       `json:"interval"`
+	DaysOfTheWeek   []recurrenceDayOfWeekJSON `json:"daysOfTheWeek,omitempty"`
+	DaysOfTheMonth  []int                     `json:"daysOfTheMonth,omitempty"`
+	MonthsOfTheYear []int                     `json:"monthsOfTheYear,omitempty"`
+	WeeksOfTheYear  []int                     `json:"weeksOfTheYear,omitempty"`
+	DaysOfTheYear   []int                     `json:"daysOfTheYear,omitempty"`
+	SetPositions    []int                     `json:"setPositions,omitempty"`
+	End             *recurrenceEndJSON        `json:"end,omitempty"`
 }
 
 type recurrenceDayOfWeekJSON struct {

@@ -1,0 +1,36 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - gocyclo
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+  settings:
+    gocyclo:
+      min-complexity: 20
+    errcheck:
+      check-blank: true
+    gosec:
+      excludes:
+        # G115: integer overflow conversion — too noisy on int↔int64 conversions
+        # we use intentionally (UNIX timestamps, byte counts).
+        - G115
+  exclusions:
+    rules:
+      - path: _test\.go$
+        linters: [errcheck, gocyclo, gosec]
+      - path: scripts/
+        linters: [errcheck, gocyclo, gosec]
+
+formatters:
+  enable:
+    - gofmt

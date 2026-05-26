@@ -1218,3 +1218,18 @@ ek_result_t ek_cal_delete_event(const char* event_id, int span) {
     });
     return res;
 }
+
+ek_result_t ek_cal_default_calendar(void) {
+    @autoreleasepool {
+        ek_result_t res = {NULL, NULL};
+        EKEventStore* store = get_store();
+        EKCalendar* cal = [store defaultCalendarForNewEvents];
+        if (!cal) {
+            res.result = strdup("null");
+            return res;
+        }
+        res.result = to_json(calendar_to_dict(cal));
+        if (!res.result) res.error = strdup("JSON serialization failed");
+        return res;
+    }
+}

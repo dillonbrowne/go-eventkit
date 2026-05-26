@@ -1,0 +1,6 @@
+calendar:
+  default: deny
+  allow:
+    - id: X
+      mode: read
+      bogus: true

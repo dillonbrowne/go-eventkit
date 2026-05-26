@@ -1,0 +1,10 @@
+calendar:
+  default: deny
+  allow:
+    - source: iCloud
+      mode: read
+    - id: CAL-WRITE
+      mode: readwrite   # explicit id promotes above source permission
+
+reminders:
+  default: deny

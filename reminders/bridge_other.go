@@ -78,3 +78,6 @@ func (c *Client) UncompleteReminder(id string) (*Reminder, error) {
 func (c *Client) WatchChanges(ctx context.Context) (<-chan struct{}, error) {
 	return nil, ErrUnsupported
 }
+
+// DefaultList returns the reminders list EventKit uses for new reminders.
+func (c *Client) DefaultList() (*List, error) { return nil, ErrUnsupported }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // rawReminder is the intermediate JSON representation from the ObjC bridge.
@@ -36,15 +36,15 @@ type rawAlarm struct {
 }
 
 type rawRecurrenceRule struct {
-	Frequency       int                       `json:"frequency"`
-	Interval        int                       `json:"interval"`
-	DaysOfTheWeek   []rawRecurrenceDayOfWeek  `json:"daysOfTheWeek,omitempty"`
-	DaysOfTheMonth  []int                     `json:"daysOfTheMonth,omitempty"`
-	MonthsOfTheYear []int                     `json:"monthsOfTheYear,omitempty"`
-	WeeksOfTheYear  []int                     `json:"weeksOfTheYear,omitempty"`
-	DaysOfTheYear   []int                     `json:"daysOfTheYear,omitempty"`
-	SetPositions    []int                     `json:"setPositions,omitempty"`
-	End             *rawRecurrenceEnd         `json:"end,omitempty"`
+	Frequency       int                      `json:"frequency"`
+	Interval        int                      `json:"interval"`
+	DaysOfTheWeek   []rawRecurrenceDayOfWeek `json:"daysOfTheWeek,omitempty"`
+	DaysOfTheMonth  []int                    `json:"daysOfTheMonth,omitempty"`
+	MonthsOfTheYear []int                    `json:"monthsOfTheYear,omitempty"`
+	WeeksOfTheYear  []int                    `json:"weeksOfTheYear,omitempty"`
+	DaysOfTheYear   []int                    `json:"daysOfTheYear,omitempty"`
+	SetPositions    []int                    `json:"setPositions,omitempty"`
+	End             *rawRecurrenceEnd        `json:"end,omitempty"`
 }
 
 type rawRecurrenceDayOfWeek struct {
@@ -201,6 +201,21 @@ func parseReminderJSON(jsonStr string) (*Reminder, error) {
 }
 
 // parseListsJSON parses a JSON array of reminder lists.
+func parseSingleListJSON(jsonStr string) (*List, error) {
+	var r rawList
+	if err := json.Unmarshal([]byte(jsonStr), &r); err != nil {
+		return nil, fmt.Errorf("reminders: failed to parse list JSON: %w", err)
+	}
+	return &List{
+		ID:       r.ID,
+		Title:    r.Title,
+		Color:    r.Color,
+		Source:   r.Source,
+		Count:    r.Count,
+		ReadOnly: r.ReadOnly,
+	}, nil
+}
+
 func parseListsJSON(jsonStr string) ([]List, error) {
 	var raw []rawList
 	if err := json.Unmarshal([]byte(jsonStr), &raw); err != nil {

@@ -65,3 +65,6 @@ func (c *Client) DeleteCalendar(id string) error { return ErrUnsupported }
 func (c *Client) WatchChanges(ctx context.Context) (<-chan struct{}, error) {
 	return nil, ErrUnsupported
 }
+
+// DefaultCalendar returns the calendar EventKit uses for new events.
+func (c *Client) DefaultCalendar() (*Calendar, error) { return nil, ErrUnsupported }

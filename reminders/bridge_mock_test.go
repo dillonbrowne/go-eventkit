@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // These tests use a mock bridge layer to test the JSON round-trip,
@@ -170,20 +170,20 @@ func TestMockRemindersRoundtrip(t *testing.T) {
 
 	input := []Reminder{
 		{
-			ID:             "rem-1",
-			Title:          "Buy groceries",
-			Notes:          "Milk, eggs, bread",
-			List:           "Shopping",
-			ListID:         "list-2",
-			DueDate:        &due,
-			RemindMeDate:   &remind,
-			CreatedAt:      &now,
-			ModifiedAt:     &now,
-			Priority:       PriorityHigh,
-			Completed:      false,
-			Flagged:        false,
-			URL:            "https://example.com/list",
-			HasAlarms:      true,
+			ID:           "rem-1",
+			Title:        "Buy groceries",
+			Notes:        "Milk, eggs, bread",
+			List:         "Shopping",
+			ListID:       "list-2",
+			DueDate:      &due,
+			RemindMeDate: &remind,
+			CreatedAt:    &now,
+			ModifiedAt:   &now,
+			Priority:     PriorityHigh,
+			Completed:    false,
+			Flagged:      false,
+			URL:          "https://example.com/list",
+			HasAlarms:    true,
 			Alarms: []Alarm{
 				{RelativeOffset: -30 * time.Minute},
 			},

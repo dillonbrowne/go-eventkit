@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BRO3886/go-eventkit/calendar"
-	"github.com/BRO3886/go-eventkit/reminders"
+	"github.com/dillonbrowne/go-eventkit/calendar"
+	"github.com/dillonbrowne/go-eventkit/reminders"
 )
 
 // benchResult holds timing results from a benchmark run.

@@ -74,3 +74,8 @@ int ek_cal_watch_read_fd(void);
 void ek_cal_watch_stop(void);
 
 #endif
+
+// ek_cal_default_calendar returns the default calendar for new events as
+// a JSON object matching the calendar_to_dict shape, or the literal
+// string "null" if no default exists. Caller must free result.
+ek_result_t ek_cal_default_calendar(void);

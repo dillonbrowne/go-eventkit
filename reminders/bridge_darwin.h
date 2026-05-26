@@ -84,3 +84,8 @@ int ek_rem_watch_read_fd(void);
 void ek_rem_watch_stop(void);
 
 #endif
+
+// ek_rem_default_list returns the default reminders list as a JSON
+// object matching the list_to_dict shape, or "null" if no default
+// exists. Caller must free result.
+ek_result_t ek_rem_default_list(void);

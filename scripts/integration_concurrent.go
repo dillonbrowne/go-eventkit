@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BRO3886/go-eventkit/calendar"
-	"github.com/BRO3886/go-eventkit/reminders"
+	"github.com/dillonbrowne/go-eventkit/calendar"
+	"github.com/dillonbrowne/go-eventkit/reminders"
 )
 
 func main() {

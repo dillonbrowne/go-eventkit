@@ -27,6 +27,7 @@ No AppleScript. No subprocesses. Direct EventKit access via cgo, with an idiomat
 - **Concurrency safe** — Write operations serialized via dispatch queue, inline error returns (no thread-local storage), safe for use from multiple goroutines
 - **Pure Go API** — Idiomatic types, no cgo leaking to consumers
 - **Cross-platform safe** — Types importable everywhere, bridge returns `ErrUnsupported` on non-darwin
+- **REST server with allowlist scoping** — `cmd/eventkit-server` exposes the library as a localhost REST API with an OpenAPI 3.1 spec and a YAML allowlist policy enforced at every layer. Foundation for an MCP server.
 
 ## Requirements
 
@@ -35,7 +36,7 @@ No AppleScript. No subprocesses. Direct EventKit access via cgo, with an idiomat
 ## Installation
 
 ```bash
-go get github.com/BRO3886/go-eventkit
+go get github.com/dillonbrowne/go-eventkit
 ```
 
 ## Quick Start
@@ -50,8 +51,8 @@ import (
     "log"
     "time"
 
-    "github.com/BRO3886/go-eventkit"
-    "github.com/BRO3886/go-eventkit/calendar"
+    "github.com/dillonbrowne/go-eventkit"
+    "github.com/dillonbrowne/go-eventkit/calendar"
 )
 
 func main() {
@@ -114,7 +115,7 @@ import (
     "log"
     "time"
 
-    "github.com/BRO3886/go-eventkit/reminders"
+    "github.com/dillonbrowne/go-eventkit/reminders"
 )
 
 func main() {
@@ -186,7 +187,7 @@ The channel is buffered (cap 16) and excess signals are coalesced — consumers 
 ### Date Parsing
 
 ```go
-import "github.com/BRO3886/go-eventkit/dateparser"
+import "github.com/dillonbrowne/go-eventkit/dateparser"
 
 // Simple usage (defaults: midnight, no rollover)
 t, err := dateparser.ParseDate("tomorrow 2pm")
@@ -218,7 +219,7 @@ Supports: keywords (`today`, `tomorrow`, `now`, `eod`, `eow`, `this week`, `next
 ### Calendar Package
 
 ```go
-import "github.com/BRO3886/go-eventkit/calendar"
+import "github.com/dillonbrowne/go-eventkit/calendar"
 ```
 
 | Method                                               | Description                       |
@@ -243,7 +244,7 @@ import "github.com/BRO3886/go-eventkit/calendar"
 ### Dateparser Package
 
 ```go
-import "github.com/BRO3886/go-eventkit/dateparser"
+import "github.com/dillonbrowne/go-eventkit/dateparser"
 ```
 
 | Function | Description |
@@ -259,7 +260,7 @@ import "github.com/BRO3886/go-eventkit/dateparser"
 ### Reminders Package
 
 ```go
-import "github.com/BRO3886/go-eventkit/reminders"
+import "github.com/dillonbrowne/go-eventkit/reminders"
 ```
 
 | Method                                         | Description                           |
@@ -337,6 +338,28 @@ go run -tags integration ./scripts/benchmark.go
 
 </details>
 
+## MCP server (AI-native)
+
+`cmd/eventkit-mcp` is a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server that exposes 24 curated tools over the REST API — works with Claude Desktop, Continue, Cline (locally) and Claude web, Claude mobile, ChatGPT custom connectors (when tunneled).
+
+Highlights:
+- Translates each tool call to one REST request on `127.0.0.1:8765` (inherits the REST middleware: policy, rate limit, idempotency, audit).
+- Accepts natural-language date strings (`tomorrow 2pm`, `next friday`, `eod`) via the `dateparser` package.
+- Wraps user-controlled strings in `<USER_DATA>…</USER_DATA>` delimiters and truncates to 512 chars before returning them to the LLM, to harden against prompt injection from shared/invited calendar content.
+- Loopback bind by default; no built-in auth. Remote exposure is the operator's call — put a tunnel + identity layer in front (Cloudflare Tunnel + Access, Tailscale Funnel, etc.).
+
+```sh
+brew install eventkit-mcp
+brew services start eventkit-mcp
+
+curl -s -H "Content-Type: application/json" \
+     http://127.0.0.1:8766/mcp \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
+# → 24 tool names
+```
+
+See [`docs/operator-playbook.md`](docs/operator-playbook.md) and [`docs/prd/mcp-threats.md`](docs/prd/mcp-threats.md) for full setup and threat model.
+
 ## Permissions (TCC)
 
 On first use, macOS will prompt for Calendar/Reminders access. The prompt shows the terminal app name (Terminal.app, iTerm2, etc.), not the Go binary.
@@ -396,14 +419,62 @@ These are Apple EventKit limitations, not bugs:
 - **Birthday/subscription calendars are read-only**
 - **Recurrence is a subset of RFC 5545** — Daily/weekly/monthly/yearly only, no hourly/minutely
 
+## REST Server
+
+`cmd/eventkit-server` wraps the library in a localhost-only REST API. It is the foundation for the upcoming MCP server. Defense-in-depth — every request passes through each layer:
+
+| Layer | What it does |
+|---|---|
+| Transport bind | Defaults to `127.0.0.1`; refuses non-loopback bind without `--insecure-bind`. |
+| `Recover` | A panicking handler becomes a 500 with logged stack; subsequent requests keep being served. |
+| `StripServerHeader` | Removes `Server: ...` so the runtime version is never disclosed. |
+| `Loopback` | Rejects non-loopback `Host` header *or* `RemoteAddr` with 403. |
+| `RequestID` | Generates (or echoes a sanitized) `X-Request-ID`; threads it into every audit log. |
+| `RejectMethodOverride` | Returns 400 if any `X-HTTP-Method[-Override]` header is set. |
+| `RequestTimeout` | Per-request context timeout (30s default, configurable); slow handler returns 504. |
+| `BodyLimit` | `http.MaxBytesReader` caps request body (1 MiB default). |
+| `RequireContentType` | Rejects POST/PUT/PATCH with a body that is not `application/json` with 415. |
+| huma validation | Required fields, ISO 8601, enum constraints checked before the handler runs. |
+| Policy gate | YAML allowlist ([`policy.example.yaml`](policy.example.yaml)) declares which calendars / reminder lists / sources are accessible, with per-entry `read` / `readwrite` granularity. The server refuses to start without a policy. |
+| Post-fetch verification | After every write, the result's calendar/list/source is re-checked against the policy. Mismatch returns 422 with the orphaned id so an operator can clean up; EventKit is not transactional, so the artifact is not auto-rolled back. |
+| `Audit` | Every non-GET request is logged with method, path, status, elapsed, and request id. |
+
+OpenAPI 3.1 spec generated at runtime from Go types via [huma v2](https://github.com/danielgtaylor/huma) — the spec cannot drift from the implementation. The `/docs` UI is [Scalar](https://scalar.com/).
+
+```bash
+# Policy is optional — without it the server restricts access to
+# EventKit's default calendar and default reminders list only.
+go run ./cmd/eventkit-server
+# Or with an explicit allowlist:
+go run ./cmd/eventkit-server --policy ./policy.example.yaml
+
+# In another terminal:
+curl -i http://127.0.0.1:8765/healthz            # X-Request-ID set, no Server header
+curl http://127.0.0.1:8765/openapi.json | jq '.info'
+open  http://127.0.0.1:8765/docs                 # Scalar API Reference
+```
+
+### TCC prompts (macOS)
+
+A bare `go build` binary is attributed to the parent terminal for Privacy & Security purposes, and macOS 14+ silently denies access without a usage-description Info.plist. `cmd/bundle-app` wraps the built binary in a minimal signed `.app` so the system pops the familiar permission dialog the first time it runs:
+
+```bash
+go build -o /tmp/eventkit-server ./cmd/eventkit-server
+go run  ./cmd/bundle-app --bin /tmp/eventkit-server --name Eventkit --out /tmp/Eventkit.app
+/tmp/Eventkit.app/Contents/MacOS/Eventkit --listen 127.0.0.1:8787
+```
+
+The bundler emits a proper `Info.plist` (with `NSCalendarsUsageDescription` / `NSRemindersUsageDescription`), copies the binary into `Contents/MacOS/`, and ad-hoc signs the result. Pass `--sign=false` to skip signing, or `--background=false` to make the app appear in the Dock.
+
 ## Building & Testing
 
 ```bash
 go build ./...                                        # Build
-go test ./...                                         # Unit tests (includes dateparser)
+go test ./...                                         # Unit tests (includes server, scoped, policy, middleware)
 go test ./dateparser/...                              # Dateparser tests only (35 tests)
 go run -tags integration ./scripts/integration.go     # Calendar integration tests
 go run -tags integration ./scripts/integration_reminders.go  # Reminder integration tests
+go run -tags integration ./scripts/integration_server.go     # REST server HTTP roundtrip + policy denial
 GOOS=linux CGO_ENABLED=0 go build ./...               # Cross-platform stubs
 ```
 

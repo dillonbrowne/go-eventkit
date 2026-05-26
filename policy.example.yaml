@@ -1,0 +1,41 @@
+# policy.example.yaml
+#
+# Allowlist consumed by the eventkit-server binary. The server refuses to
+# start without one of these files — there is no implicit "allow everything"
+# default by design.
+#
+# Each managed package (calendar, reminders) has:
+#   - default: the mode applied when nothing matches. One of `deny`, `read`,
+#     `readwrite`. Use `deny` unless you are sure.
+#   - allow: a list of entries. Each entry names *exactly one* of:
+#       - id:      a calendar identifier (from Calendar.ID)
+#       - source:  an account source name (e.g. "iCloud", "Local")
+#       - list_id: a reminder list identifier (under `reminders:` only)
+#     ...plus `mode: read | readwrite`.
+#
+# Precedence:
+#   - An explicit ID match always wins over a source match (even if more
+#     restrictive — useful for "allow iCloud generally, but lock down
+#     this one calendar to read-only").
+#   - When multiple entries with the same ID disagree, the most
+#     restrictive mode wins.
+#   - Among source matches with no ID match, the most permissive mode wins.
+
+calendar:
+  default: deny
+  allow:
+    # All iCloud calendars are read+write...
+    - source: iCloud
+      mode: readwrite
+    # ...except this one specific calendar, which is locked to read-only.
+    # Replace the ID with one from `curl http://127.0.0.1:8765/v1/calendars`.
+    - id: REPLACE-ME-WITH-A-REAL-CAL-ID
+      mode: read
+
+reminders:
+  default: deny
+  allow:
+    - source: iCloud
+      mode: readwrite
+    - list_id: REPLACE-ME-WITH-A-REAL-LIST-ID
+      mode: read

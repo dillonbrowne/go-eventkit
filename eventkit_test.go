@@ -171,8 +171,8 @@ func TestRecurrenceRuleValidate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid monthly with days of month",
-			rule: Monthly(1, 1, 15),
+			name:    "valid monthly with days of month",
+			rule:    Monthly(1, 1, 15),
 			wantErr: false,
 		},
 		{

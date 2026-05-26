@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
-	"github.com/BRO3886/go-eventkit/reminders"
+	"github.com/dillonbrowne/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit/reminders"
 )
 
 func main() {

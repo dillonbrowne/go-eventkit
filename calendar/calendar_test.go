@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // --- Enum String() tests ---
@@ -1057,8 +1057,8 @@ func TestConvertRawEvent(t *testing.T) {
 	t.Run("status and availability mapping", func(t *testing.T) {
 		raw := rawEvent{
 			ID:           "test",
-			Status:       3,  // Canceled
-			Availability: 2,  // Tentative
+			Status:       3, // Canceled
+			Availability: 2, // Tentative
 		}
 		e := convertRawEvent(raw)
 		if e.Status != StatusCanceled {
@@ -2122,14 +2122,14 @@ func TestLargeEventSet(t *testing.T) {
 		startStr := start.Format("2006-01-02T15:04:05.000Z")
 		endStr := start.Add(time.Hour).Format("2006-01-02T15:04:05.000Z")
 		events[i] = rawEvent{
-			ID:           string(rune('A'+i%26)) + "-event",
-			Title:        "Event " + string(rune('A'+i%26)),
-			StartDate:    &startStr,
-			EndDate:      &endStr,
-			Calendar:     []string{"Work", "Home", "Family"}[i%3],
-			CalendarID:   []string{"c1", "c2", "c3"}[i%3],
-			Attendees:    []rawAttendee{},
-			Alerts:       []rawAlert{},
+			ID:         string(rune('A'+i%26)) + "-event",
+			Title:      "Event " + string(rune('A'+i%26)),
+			StartDate:  &startStr,
+			EndDate:    &endStr,
+			Calendar:   []string{"Work", "Home", "Family"}[i%3],
+			CalendarID: []string{"c1", "c2", "c3"}[i%3],
+			Attendees:  []rawAttendee{},
+			Alerts:     []rawAlert{},
 		}
 	}
 

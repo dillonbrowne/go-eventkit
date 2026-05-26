@@ -1,0 +1,15 @@
+calendar:
+  default: deny
+  allow:
+    - id: CAL-WORK
+      mode: readwrite
+    - source: iCloud
+      mode: read
+
+reminders:
+  default: deny
+  allow:
+    - list_id: LIST-TODO
+      mode: readwrite
+    - source: iCloud
+      mode: read

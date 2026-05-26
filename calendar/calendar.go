@@ -49,7 +49,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // Sentinel errors returned by Client methods. Use [errors.Is] to check:

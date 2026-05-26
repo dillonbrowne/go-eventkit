@@ -1,0 +1,8 @@
+# policy.demo.yaml — permissive demo for poking at /docs and /openapi.json.
+# Allows every calendar and reminder list visible on this account in
+# read+write mode. Replace with a real allowlist before pointing an MCP
+# client at this server.
+calendar:
+  default: readwrite
+reminders:
+  default: readwrite

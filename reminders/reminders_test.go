@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // --- Priority Tests ---
@@ -19,14 +19,14 @@ func TestPriorityString(t *testing.T) {
 		{PriorityHigh, "high"},
 		{PriorityMedium, "medium"},
 		{PriorityLow, "low"},
-		{Priority(2), "high"},   // 1-4 = high
-		{Priority(3), "high"},   // 1-4 = high
-		{Priority(4), "high"},   // 1-4 = high
-		{Priority(6), "low"},    // 6-9 = low
-		{Priority(7), "low"},    // 6-9 = low
-		{Priority(8), "low"},    // 6-9 = low
-		{Priority(10), "none"},  // out of range
-		{Priority(-1), "none"},  // negative
+		{Priority(2), "high"},  // 1-4 = high
+		{Priority(3), "high"},  // 1-4 = high
+		{Priority(4), "high"},  // 1-4 = high
+		{Priority(6), "low"},   // 6-9 = low
+		{Priority(7), "low"},   // 6-9 = low
+		{Priority(8), "low"},   // 6-9 = low
+		{Priority(10), "none"}, // out of range
+		{Priority(-1), "none"}, // negative
 	}
 	for _, tt := range tests {
 		got := tt.p.String()

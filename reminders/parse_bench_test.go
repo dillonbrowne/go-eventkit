@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BRO3886/go-eventkit"
+	"github.com/dillonbrowne/go-eventkit"
 )
 
 // --- JSON generators ---
@@ -42,17 +42,17 @@ func generateRemindersJSON(count int) string {
 	raw := make([]rawReminder, count)
 	for i := range raw {
 		r := rawReminder{
-			ID:        fmt.Sprintf("rem-%04d", i),
-			Title:     fmt.Sprintf("Reminder %d", i),
-			List:      fmt.Sprintf("List %d", i%5),
-			ListID:    fmt.Sprintf("list-%04d", i%5),
-			Priority:  []int{0, 1, 5, 9}[i%4],
-			Completed: i%3 == 0,
-			Flagged:   false,
-			Recurring: i%4 == 0,
-			HasAlarms: i%5 == 0,
-			Alarms:    []rawAlarm{},
-			CreatedAt: dateStr(baseTime.Add(-48 * time.Hour)),
+			ID:         fmt.Sprintf("rem-%04d", i),
+			Title:      fmt.Sprintf("Reminder %d", i),
+			List:       fmt.Sprintf("List %d", i%5),
+			ListID:     fmt.Sprintf("list-%04d", i%5),
+			Priority:   []int{0, 1, 5, 9}[i%4],
+			Completed:  i%3 == 0,
+			Flagged:    false,
+			Recurring:  i%4 == 0,
+			HasAlarms:  i%5 == 0,
+			Alarms:     []rawAlarm{},
+			CreatedAt:  dateStr(baseTime.Add(-48 * time.Hour)),
 			ModifiedAt: dateStr(baseTime.Add(-1 * time.Hour)),
 		}
 
