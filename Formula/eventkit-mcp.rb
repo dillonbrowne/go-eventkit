@@ -7,10 +7,12 @@ class EventkitMcp < Formula
   license "MIT"
   head "https://github.com/dillonbrowne/go-eventkit.git", branch: "main"
 
-  # The MCP server is a thin proxy in front of the REST server, so
-  # eventkit-server must be installed (and ideally running) for
-  # eventkit-mcp to do anything useful.
-  depends_on "dillonbrowne/go-eventkit/eventkit-server"
+  # eventkit-server is a RUNTIME companion (the MCP server proxies to it
+  # over HTTP), not a build dependency — so it is intentionally not a
+  # `depends_on`. Declaring it would force Homebrew to install the
+  # *stable* eventkit-server formula even during a `--HEAD` install,
+  # which is the wrong version to pair with a HEAD MCP build. Install
+  # eventkit-server separately (see caveats).
   depends_on "go" => :build
   depends_on :macos
 
@@ -43,8 +45,10 @@ class EventkitMcp < Formula
       put a tunnel + identity layer in front (Cloudflare Tunnel +
       Cloudflare Access, Tailscale Funnel, etc.).
 
-      Make sure `brew services start eventkit-server` is running first —
-      the MCP server is a translator in front of the REST API.
+      Install and start the REST server first — the MCP server is a
+      translator in front of it:
+        brew install --HEAD dillonbrowne/go-eventkit/eventkit-server
+        brew services start eventkit-server
     EOS
   end
 
