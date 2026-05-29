@@ -46,7 +46,17 @@ func New(opts ...Option) *Server {
 
 	streamable := sdkmcp.NewStreamableHTTPHandler(func(*http.Request) *sdkmcp.Server {
 		return mcpServer
-	}, nil)
+	}, &sdkmcp.StreamableHTTPOptions{
+		// The SDK auto-enables DNS-rebinding protection for loopback-bound
+		// servers: it 403s any request whose Host header isn't localhost.
+		// This server is *designed* to be reached through an operator-managed
+		// tunnel (Cloudflare Tunnel, Tailscale Funnel, etc.), where the
+		// inbound Host is the public hostname — so that check rejects every
+		// legitimate tunneled request. We disable it; the perimeter is the
+		// loopback bind plus whatever identity layer the operator fronts the
+		// tunnel with. See docs/operator-playbook.md.
+		DisableLocalhostProtection: true,
+	})
 
 	// Outer middleware chain — reusable, transport-agnostic pieces from
 	// server/middleware. Order matters; see server.go for the rationale.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -193,5 +194,35 @@ func TestServer_GetEvent_PropagatesNotFound(t *testing.T) {
 	}
 	if !res.IsError {
 		t.Errorf("expected IsError=true on 404; got %+v", res.Content)
+	}
+}
+
+// TestServer_AcceptsNonLoopbackHost is a regression guard for tunnel
+// exposure. The MCP SDK auto-enables DNS-rebinding protection on
+// loopback-bound servers, 403-ing any request whose Host header is not
+// localhost — which is every request arriving through a tunnel (the
+// Host is the public hostname). mcp.New disables that protection; this
+// test fails if that ever regresses.
+func TestServer_AcceptsNonLoopbackHost(t *testing.T) {
+	srv := mcp.New(mcp.WithAPIBase("http://127.0.0.1:1")) // backend unused for initialize
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Host = "eventkit.example.com" // simulate a tunneled request
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusForbidden {
+		t.Fatalf("non-loopback Host rejected with 403 — DNS-rebinding protection is back on; tunnel access is broken")
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
 	}
 }
