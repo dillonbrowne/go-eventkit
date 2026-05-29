@@ -7,7 +7,7 @@ class EventkitServer < Formula
   version "0.1.0"
   sha256 "REPLACE_ME_AFTER_TAGGING"
   license "MIT"
-  head "https://github.com/dillonbrowne/go-eventkit.git", branch: "main"
+  head "git@github.com:dillonbrowne/go-eventkit.git", branch: "main"
 
   depends_on "go" => :build
   depends_on :macos
