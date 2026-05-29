@@ -5,7 +5,7 @@ class EventkitMcp < Formula
   version "0.1.0"
   sha256 "REPLACE_ME_AFTER_TAGGING"
   license "MIT"
-  head "git@github.com:dillonbrowne/go-eventkit.git", branch: "main"
+  head "ssh://git@github.com/dillonbrowne/go-eventkit.git", branch: "main"
 
   # eventkit-server is a RUNTIME companion (the MCP server proxies to it
   # over HTTP), not a build dependency — so it is intentionally not a
