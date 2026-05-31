@@ -15,7 +15,7 @@
 //
 // # Tool surface
 //
-// 24 tools mirroring the REST surface, one per OperationID. Tools that
+// 26 tools mirroring the REST surface (incl. search + fetch for ChatGPT), one per OperationID. Tools that
 // only read are tagged with the MCP "readOnlyHint"; tools that delete
 // get "destructiveHint"; reversible writes get "idempotentHint". All
 // 24 carry "openWorldHint" because they touch macOS state.

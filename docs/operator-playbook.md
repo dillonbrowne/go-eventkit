@@ -95,7 +95,7 @@ Rate limiting protects iCloud sync from a runaway agent. Idempotency-Key support
 
 ## 5a. MCP server (AI-native)
 
-`eventkit-mcp` is a separate binary that exposes the REST API as a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server. AI clients (Claude Desktop, Continue, Cline locally; Claude web, Claude mobile, ChatGPT custom connectors via tunnel) call 24 curated tools that translate to REST requests on `127.0.0.1:8765`.
+`eventkit-mcp` is a separate binary that exposes the REST API as a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server. AI clients (Claude Desktop, Continue, Cline locally; Claude web, Claude mobile, ChatGPT custom connectors via tunnel) call 26 curated tools that translate to REST requests on `127.0.0.1:8765`: 24 CRUD tools plus `search` + `fetch` (the two tools ChatGPT's Deep Research / standard connector mode requires).
 
 ### Install + run
 
@@ -125,13 +125,22 @@ In `~/Library/Application Support/Claude/claude_desktop_config.json` (or the equ
 
 For Claude web / Claude mobile / ChatGPT custom connectors, you need a public URL. The MCP server has **no auth**, so put a tunnel + identity provider in front. We don't prescribe a specific path — Cloudflare Tunnel + Cloudflare Access, Tailscale Funnel, ngrok with auth, a self-hosted reverse proxy + OAuth, etc. all work. The MCP server only ever sees loopback traffic; the perimeter is the operator's responsibility.
 
+### Connecting from ChatGPT
+
+ChatGPT treats a custom MCP connector differently from Claude, in two modes:
+
+- **Developer Mode** (Settings → Apps → Advanced settings → **Developer Mode**; requires a Plus/Pro/Business+ plan, and workspace admins may need to enable it org-wide first) gives ChatGPT **full read+write access to all 26 tools** — the same experience as Claude. **This is what you want for "do everything like Claude."** After toggling it on, add the connector URL (your tunnel) and refresh; all tools appear, and write actions prompt a confirmation modal (ChatGPT honors the `readOnlyHint` annotation).
+- **Standard connector / Deep Research** (no Developer Mode) only surfaces the `search` and `fetch` tools — ChatGPT *rejects* MCP servers that lack them, which is why a connector can "add OK but show no usable tools." `eventkit-mcp` ships `search` (text-match across your events + reminders) and `fetch` (full details by id), so Deep Research over your calendar/reminders works out of the box.
+
+If you add the connector and **no tools appear**, the fix is almost always: enable Developer Mode. Transport (Streamable HTTP) and no-auth are both already compatible with ChatGPT.
+
 ### Natural-language dates
 
 Every tool that accepts a date accepts either RFC 3339 (`2026-05-26T15:00:00Z`) or natural language (`tomorrow 2pm`, `next friday`, `eod`, `in 2 hours`). The MCP server converts to RFC 3339 via the `dateparser` package before forwarding to the REST API.
 
 ### Prompt-injection mitigation
 
-User-controlled string fields (event titles, notes, attendee names/emails, reminder bodies) are wrapped in `<USER_DATA>…</USER_DATA>` delimiters and truncated to 512 chars when returned to the MCP client. The wrapping is a hint to the LLM that the enclosed text is untrusted and must not be interpreted as instructions. See [`docs/prd/mcp-threats.md`](prd/mcp-threats.md).
+User-controlled string fields (event titles, notes, attendee names/emails, reminder bodies) are wrapped in `<USER_DATA>…</USER_DATA>` delimiters and truncated to 512 chars when returned to the MCP client. The wrapping is a hint to the LLM that the enclosed text is untrusted and must not be interpreted as instructions. (Exception: the `search`/`fetch` tools return **unwrapped** text, because ChatGPT Deep Research treats it as citable document content; it is still length-capped.) See [`docs/prd/mcp-threats.md`](prd/mcp-threats.md).
 
 ## 6. Troubleshooting
 

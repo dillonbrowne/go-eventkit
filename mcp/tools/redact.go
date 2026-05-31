@@ -28,11 +28,20 @@ func WrapUserData(s string) string {
 	if s == "" {
 		return ""
 	}
-	if len([]rune(s)) > userDataMaxLen {
-		runes := []rune(s)
-		s = string(runes[:userDataMaxLen]) + "…"
+	return openTag + truncate(s, userDataMaxLen) + closeTag
+}
+
+// truncate shortens s to at most n runes, appending an ellipsis if it
+// was cut. Unlike WrapUserData it does NOT add <USER_DATA> delimiters —
+// it's used for the search/fetch tools, whose output ChatGPT treats as
+// citable document text where the delimiters would be noise. The
+// prompt-injection trade-off is documented in docs/prd/mcp-threats.md.
+func truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
 	}
-	return openTag + s + closeTag
+	return string(r[:n]) + "…"
 }
 
 // RedactedEvent is a copy of calendar.Event with user-controlled string

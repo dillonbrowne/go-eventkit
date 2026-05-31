@@ -340,7 +340,7 @@ go run -tags integration ./scripts/benchmark.go
 
 ## MCP server (AI-native)
 
-`cmd/eventkit-mcp` is a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server that exposes 24 curated tools over the REST API — works with Claude Desktop, Continue, Cline (locally) and Claude web, Claude mobile, ChatGPT custom connectors (when tunneled).
+`cmd/eventkit-mcp` is a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server that exposes 26 curated tools over the REST API — works with Claude Desktop, Continue, Cline (locally) and Claude web, Claude mobile, ChatGPT custom connectors (when tunneled). The 24 CRUD tools are joined by `search` + `fetch`, the two tools ChatGPT's Deep Research / standard-connector mode requires; for full read+write in ChatGPT, enable **Developer Mode** (see the [operator playbook](docs/operator-playbook.md#connecting-from-chatgpt)).
 
 Highlights:
 - Translates each tool call to one REST request on `127.0.0.1:8765` (inherits the REST middleware: policy, rate limit, idempotency, audit).

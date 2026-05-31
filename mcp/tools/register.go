@@ -43,4 +43,8 @@ func Register(s *mcp.Server, c *client.Client) {
 	registerCompleteReminder(s, c)
 	registerUncompleteReminder(s, c)
 	registerBatchDeleteReminders(s, c)
+
+	// ChatGPT Deep Research compatibility (2): search + fetch.
+	registerSearch(s, c)
+	registerFetch(s, c)
 }

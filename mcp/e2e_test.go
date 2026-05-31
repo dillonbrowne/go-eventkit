@@ -138,8 +138,9 @@ func TestE2E_ToolSurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(got.Tools) != 24 {
-		t.Fatalf("got %d tools, want 24", len(got.Tools))
+	// 24 CRUD tools + search + fetch (the two ChatGPT Deep Research tools).
+	if len(got.Tools) != 26 {
+		t.Fatalf("got %d tools, want 26", len(got.Tools))
 	}
 	var ro, destructive, idempotent int
 	for _, tt := range got.Tools {
@@ -157,8 +158,9 @@ func TestE2E_ToolSurface(t *testing.T) {
 			idempotent++
 		}
 	}
-	if ro != 8 {
-		t.Errorf("read-only tool count = %d, want 8", ro)
+	// 8 list/get + search + fetch = 10 read-only.
+	if ro != 10 {
+		t.Errorf("read-only tool count = %d, want 10", ro)
 	}
 	if destructive != 6 {
 		t.Errorf("destructive tool count = %d, want 6", destructive)
@@ -568,6 +570,97 @@ func TestE2E_BadInput(t *testing.T) {
 	}
 	if !res.IsError {
 		t.Errorf("expected IsError on missing required id")
+	}
+}
+
+// ---- ChatGPT search / fetch ----
+
+func TestE2E_SearchAndFetch(t *testing.T) {
+	cs, cal, rem := e2eHarness(t)
+
+	// Seed an event (id deliberately contains a colon, like real EventKit
+	// occurrence identifiers) and a reminder, both in allowed iCloud
+	// containers.
+	cal.Events = append(cal.Events, calendar.Event{
+		ID:         "EVT-1:OCC-9",
+		Title:      "Dentist appointment",
+		Calendar:   "testing",
+		CalendarID: "CAL-TEST",
+		Location:   "123 Main St",
+		StartDate:  time.Now().Add(48 * time.Hour),
+		EndDate:    time.Now().Add(49 * time.Hour),
+	})
+	rem.Items = append(rem.Items, reminders.Reminder{
+		ID: "REM-1", Title: "Buy milk", List: "testing", ListID: "LIST-TEST",
+	})
+
+	// --- search returns both, with namespaced ids + urls ---
+	res := callTool(t, cs, "search", map[string]any{"query": "anything"})
+	if res.IsError {
+		t.Fatalf("search: IsError: %+v", res.Content)
+	}
+	var sout struct {
+		Results []struct {
+			ID, Title, Text, URL string
+		} `json:"results"`
+	}
+	structured(t, res, &sout)
+
+	byID := map[string]string{} // id -> title
+	for _, r := range sout.Results {
+		byID[r.ID] = r.Title
+		if r.URL == "" {
+			t.Errorf("result %q has empty url (OpenAI requires url)", r.ID)
+		}
+	}
+	if byID["event:EVT-1:OCC-9"] != "Dentist appointment" {
+		t.Errorf("event hit missing/wrong: %v", byID)
+	}
+	if byID["reminder:REM-1"] != "Buy milk" {
+		t.Errorf("reminder hit missing/wrong: %v", byID)
+	}
+
+	// --- fetch an event whose id itself contains a colon ---
+	res = callTool(t, cs, "fetch", map[string]any{"id": "event:EVT-1:OCC-9"})
+	if res.IsError {
+		t.Fatalf("fetch event: IsError: %+v", res.Content)
+	}
+	var fevent struct {
+		ID, Title, Text, URL string
+		Metadata             map[string]any `json:"metadata"`
+	}
+	structured(t, res, &fevent)
+	if fevent.ID != "event:EVT-1:OCC-9" {
+		t.Errorf("fetch echoed id = %q, want event:EVT-1:OCC-9", fevent.ID)
+	}
+	if fevent.Title != "Dentist appointment" {
+		t.Errorf("fetch event title = %q", fevent.Title)
+	}
+	if fevent.Metadata["kind"] != "event" {
+		t.Errorf("fetch event metadata.kind = %v, want event", fevent.Metadata["kind"])
+	}
+	if !strings.Contains(fevent.Text, "Dentist appointment") {
+		t.Errorf("fetch event text missing title: %q", fevent.Text)
+	}
+
+	// --- fetch a reminder ---
+	res = callTool(t, cs, "fetch", map[string]any{"id": "reminder:REM-1"})
+	if res.IsError {
+		t.Fatalf("fetch reminder: IsError: %+v", res.Content)
+	}
+	var frem struct {
+		ID, Title string
+		Metadata  map[string]any `json:"metadata"`
+	}
+	structured(t, res, &frem)
+	if frem.Title != "Buy milk" || frem.Metadata["kind"] != "reminder" {
+		t.Errorf("fetch reminder wrong: %+v", frem)
+	}
+
+	// --- fetch with a malformed id → IsError ---
+	bad := callTool(t, cs, "fetch", map[string]any{"id": "no-prefix"})
+	if !bad.IsError {
+		t.Errorf("fetch with malformed id should be IsError")
 	}
 }
 

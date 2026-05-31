@@ -65,6 +65,12 @@ The server's audit log captures method, path, status, elapsed, request id, targe
 
 The MCP wrapper layer may log prompt / completion content — that's outside our scope but worth flagging. PII redaction is the wrapper's job once content leaves this server.
 
+## 6. `search` / `fetch` return unwrapped content (by design)
+
+The 24 CRUD tools wrap user-controlled strings in `<USER_DATA>…</USER_DATA>` delimiters as a prompt-injection hint. The `search` and `fetch` tools (added for ChatGPT Deep Research compatibility) deliberately return **unwrapped** `title`/`text` — ChatGPT treats those fields as citable document content, and the delimiters would corrupt citations. The text is still length-capped (snippets ~280 chars, full fetch ~4000 chars).
+
+The injection risk is therefore the same as for any document a research agent ingests: an attacker who can write to a calendar/list the user has granted (shared calendars, invites) can place instructions in an event title or note that `search`/`fetch` will surface verbatim. Treat all `search`/`fetch` output as untrusted, exactly as §1 describes for the other tools.
+
 ## See also
 
 - [rest-api-prd.md](rest-api-prd.md) — the REST layer's own threat model and defense-in-depth stack.

@@ -105,8 +105,8 @@ func TestServer_ListToolsCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(got.Tools) != 24 {
-		t.Errorf("got %d tools, want 24", len(got.Tools))
+	if len(got.Tools) != 26 {
+		t.Errorf("got %d tools, want 26", len(got.Tools))
 	}
 	// Spot-check a destructive tool and a read-only tool.
 	names := map[string]*sdkmcp.Tool{}
