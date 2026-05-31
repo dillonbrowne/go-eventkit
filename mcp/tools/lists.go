@@ -23,6 +23,8 @@ func registerListReminderLists(s *mcp.Server, c *client.Client) {
 		Title:       "List reminder lists",
 		Description: "List the reminder lists visible under the active REST policy. " + UserDataNotice,
 		Annotations: readOnly(),
+		// Explicit no-arg schema so ChatGPT sees "properties":{}; see emptyObjectSchema.
+		InputSchema: emptyObjectSchema(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListReminderListsInput) (*mcp.CallToolResult, ListReminderListsOutput, error) {
 		ls, err := c.ListReminderLists(ctx)
 		if err != nil {

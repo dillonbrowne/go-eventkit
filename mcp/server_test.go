@@ -121,6 +121,42 @@ func TestServer_ListToolsCount(t *testing.T) {
 	}
 }
 
+// TestServer_AllToolsHavePropertiesKey guards ChatGPT compatibility. The
+// go-sdk infers a tool's input schema from its Go input struct; for an
+// empty struct (e.g. list_calendars' `struct{}`) it leaves Properties nil,
+// which the jsonschema marshaler omits — yielding a schema with no
+// "properties" key. Claude accepts that; ChatGPT's stricter validation can
+// reject such a tool and surface *no* tools at all ("connector adds OK but
+// nothing appears"). Every tool must therefore emit an explicit object
+// schema with a "properties" key. The no-arg tools set it via
+// emptyObjectSchema(); this test fails if a new empty-input tool forgets.
+func TestServer_AllToolsHavePropertiesKey(t *testing.T) {
+	rest := fakeREST(t)
+	defer rest.Close()
+	cs := connect(t, rest.URL)
+
+	got, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListTools: %v", err)
+	}
+	for _, tt := range got.Tools {
+		b, err := json.Marshal(tt.InputSchema)
+		if err != nil {
+			t.Fatalf("%s: marshal inputSchema: %v", tt.Name, err)
+		}
+		var sch map[string]any
+		if err := json.Unmarshal(b, &sch); err != nil {
+			t.Fatalf("%s: decode inputSchema: %v (raw: %s)", tt.Name, err, b)
+		}
+		if sch["type"] != "object" {
+			t.Errorf("%s: inputSchema type = %v, want object", tt.Name, sch["type"])
+		}
+		if _, ok := sch["properties"]; !ok {
+			t.Errorf("%s: inputSchema missing \"properties\" key — ChatGPT may reject the whole tool list (raw: %s)", tt.Name, b)
+		}
+	}
+}
+
 func TestServer_ListCalendars_RoundTrip(t *testing.T) {
 	rest := fakeREST(t)
 	defer rest.Close()

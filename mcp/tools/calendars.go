@@ -23,6 +23,8 @@ func registerListCalendars(s *mcp.Server, c *client.Client) {
 		Title:       "List calendars",
 		Description: "List the macOS calendars visible under the REST policy (iCloud, Google, Exchange, local, etc.). " + UserDataNotice,
 		Annotations: readOnly(),
+		// Explicit no-arg schema so ChatGPT sees "properties":{}; see emptyObjectSchema.
+		InputSchema: emptyObjectSchema(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListCalendarsInput) (*mcp.CallToolResult, ListCalendarsOutput, error) {
 		cals, err := c.ListCalendars(ctx)
 		if err != nil {
