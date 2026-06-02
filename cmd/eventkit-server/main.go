@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -67,6 +68,7 @@ type binaryConfig struct {
 	logLevel         slog.Level
 	apiTitle         string
 	apiVersion       string
+	publicURL        string
 }
 
 // flagEnv chains a CLI flag value, an env-var fallback, and a default.
@@ -99,6 +101,7 @@ func parseConfig(args []string) (*binaryConfig, error) {
 	logLevelStr := fs.String("log-level", "", "Log level: debug|info|warn|error. Env: EVENTKIT_LOG_LEVEL. Default: info.")
 	apiTitle := fs.String("api-title", "", "OpenAPI document title. Env: EVENTKIT_API_TITLE.")
 	apiVersion := fs.String("api-version", "", "OpenAPI document version. Env: EVENTKIT_API_VERSION. Default: build-injected version (currently \""+version.Version+"\").")
+	publicURL := fs.String("public-url", "", "Absolute public base URL (e.g. https://host) the API is reached at through a proxy/tunnel. Sets OpenAPI servers[0].url — required by the GPT Actions builder. Env: EVENTKIT_PUBLIC_URL.")
 	showVersion := fs.Bool("version", false, "Print version and exit.")
 
 	if err := fs.Parse(args); err != nil {
@@ -115,6 +118,13 @@ func parseConfig(args []string) (*binaryConfig, error) {
 		insecureBind: *insecureBindFlag || envBool("EVENTKIT_INSECURE_BIND"),
 		apiTitle:     firstNonEmpty(*apiTitle, os.Getenv("EVENTKIT_API_TITLE"), ""),
 		apiVersion:   firstNonEmpty(*apiVersion, os.Getenv("EVENTKIT_API_VERSION"), version.Version),
+		publicURL:    firstNonEmpty(*publicURL, os.Getenv("EVENTKIT_PUBLIC_URL"), ""),
+	}
+
+	if cfg.publicURL != "" {
+		if err := validatePublicURL(cfg.publicURL); err != nil {
+			return nil, fmt.Errorf("--public-url: %w", err)
+		}
 	}
 
 	var err error
@@ -271,6 +281,9 @@ func run(cfg *binaryConfig, logger *slog.Logger) error {
 	if cfg.apiTitle != "" {
 		opts = append(opts, server.WithAPITitle(cfg.apiTitle))
 	}
+	if cfg.publicURL != "" {
+		opts = append(opts, server.WithPublicURL(cfg.publicURL))
+	}
 	opts = append(opts, server.WithAPIVersion(cfg.apiVersion))
 	srv, err := server.New(opts...)
 	if err != nil {
@@ -355,6 +368,29 @@ func watchReloads(srv *server.Server, policyPath string, logger *slog.Logger) {
 			slog.Int("reminder_entries", len(pol.Reminders.Entries)),
 		)
 	}
+}
+
+// validatePublicURL requires an absolute http/https URL with a host and no
+// path/query/fragment — it becomes the OpenAPI servers[0].url, so a bare
+// origin is what consumers expect.
+func validatePublicURL(s string) error {
+	u, err := url.Parse(s)
+	if err != nil {
+		return fmt.Errorf("parse %q: %w", s, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("%q must start with http:// or https://", s)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("%q has no host", s)
+	}
+	if u.Path != "" && u.Path != "/" {
+		return fmt.Errorf("%q must be a bare origin (no path); got path %q", s, u.Path)
+	}
+	if u.RawQuery != "" || u.Fragment != "" {
+		return fmt.Errorf("%q must not include a query or fragment", s)
+	}
+	return nil
 }
 
 func enforceLoopbackBind(addr string) error {

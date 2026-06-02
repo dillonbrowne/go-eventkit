@@ -195,6 +195,54 @@ func TestServer_OpenAPISpecGenerated(t *testing.T) {
 	}
 }
 
+func TestServer_PublicURL_SetsServersBlock(t *testing.T) {
+	// Default (no WithPublicURL): spec must carry no servers block, which is
+	// correct for loopback-only use.
+	srv, _, _ := newTestServer(t)
+	rr := do(t, srv, http.MethodGet, "/openapi.json", nil)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	var spec map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &spec); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, ok := spec["servers"]; ok {
+		t.Errorf("default spec should have no servers block; got %v", spec["servers"])
+	}
+
+	// With WithPublicURL: spec advertises that URL as servers[0].url so the
+	// GPT Actions builder accepts it.
+	cal := fixtureCalFake()
+	rem := fixtureRemFake()
+	pub, err := server.New(
+		server.WithCalendarBridge(testfakes.NewCalendar(cal)),
+		server.WithRemindersBridge(testfakes.NewReminders(rem)),
+		server.WithPolicy(fixturePolicy()),
+		server.WithPublicURL("https://apple-gpt.dbee.me"),
+	)
+	if err != nil {
+		t.Fatalf("server.New: %v", err)
+	}
+	for _, path := range []string{"/openapi.json", "/openapi-3.0.json"} {
+		rr := do(t, pub, http.MethodGet, path, nil)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200", path, rr.Code)
+		}
+		var spec struct {
+			Servers []struct {
+				URL string `json:"url"`
+			} `json:"servers"`
+		}
+		if err := json.Unmarshal(rr.Body.Bytes(), &spec); err != nil {
+			t.Fatalf("%s decode: %v", path, err)
+		}
+		if len(spec.Servers) != 1 || spec.Servers[0].URL != "https://apple-gpt.dbee.me" {
+			t.Errorf("%s servers = %+v, want one entry with url https://apple-gpt.dbee.me", path, spec.Servers)
+		}
+	}
+}
+
 func TestServer_ListCalendars_FilteredByPolicy(t *testing.T) {
 	srv, _, _ := newTestServer(t)
 	rr := do(t, srv, http.MethodGet, "/v1/calendars", nil)

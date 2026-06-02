@@ -23,6 +23,7 @@ type config struct {
 	idempotencyCache int
 	apiTitle         string
 	version          string
+	publicURL        string
 }
 
 // WithCalendarBridge injects the bridge used to talk to EventKit calendars.
@@ -53,6 +54,14 @@ func WithAPITitle(s string) Option { return func(c *config) { c.apiTitle = s } }
 
 // WithAPIVersion overrides the OpenAPI document version.
 func WithAPIVersion(s string) Option { return func(c *config) { c.version = s } }
+
+// WithPublicURL sets the absolute base URL the API is reached at from
+// outside (e.g. through a reverse proxy or tunnel). When set, it becomes
+// the OpenAPI `servers[0].url`. Tools that require a server URL — notably
+// the ChatGPT / Custom GPT Actions builder — reject a spec without one, so
+// set this whenever the server is exposed under a public hostname. Leave
+// empty for the default loopback-only deployment (no servers block).
+func WithPublicURL(s string) Option { return func(c *config) { c.publicURL = s } }
 
 // WithRateLimit enables a global token-bucket rate limit. Pass rps=0 to
 // disable (the default).

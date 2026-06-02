@@ -103,6 +103,16 @@ func newHumaConfig(cfg *config) huma.Config {
 	// bundles first-party renderers with integrity-hashed CDN references —
 	// no third-party Go shim or custom HTML needed.
 	c.DocsRenderer = huma.DocsRendererScalar
+	// Advertise the public base URL when the server is fronted by a proxy
+	// or tunnel. The Custom GPT Actions builder (and other OpenAPI
+	// consumers) require a concrete servers[].url; without --public-url the
+	// spec carries no servers block, which is correct for loopback use.
+	if cfg.publicURL != "" {
+		c.Servers = []*huma.Server{{
+			URL:         cfg.publicURL,
+			Description: "Public base URL (reverse proxy / tunnel)",
+		}}
+	}
 	return c
 }
 
