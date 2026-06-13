@@ -48,3 +48,14 @@ func Register(s *mcp.Server, c *client.Client) {
 	registerSearch(s, c)
 	registerFetch(s, c)
 }
+
+// addTool wraps mcp.AddTool, defaulting every tool's input schema to the
+// strict-compatible form (see strictInput) unless the caller set one
+// explicitly. This is the single place input schemas are made compatible
+// with both OpenAI (ChatGPT) and Anthropic (Claude) MCP clients.
+func addTool[In, Out any](s *mcp.Server, t *mcp.Tool, h mcp.ToolHandlerFor[In, Out]) {
+	if t.InputSchema == nil {
+		t.InputSchema = strictInput[In]()
+	}
+	mcp.AddTool(s, t, h)
+}

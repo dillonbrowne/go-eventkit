@@ -18,13 +18,11 @@ type ListReminderListsOutput struct {
 }
 
 func registerListReminderLists(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "list_reminder_lists",
 		Title:       "List reminder lists",
 		Description: "List the reminder lists visible under the active REST policy. " + UserDataNotice,
 		Annotations: readOnly(),
-		// Explicit no-arg schema so ChatGPT sees "properties":{}; see emptyObjectSchema.
-		InputSchema: emptyObjectSchema(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListReminderListsInput) (*mcp.CallToolResult, ListReminderListsOutput, error) {
 		ls, err := c.ListReminderLists(ctx)
 		if err != nil {
@@ -44,7 +42,7 @@ type GetReminderListOutput struct {
 }
 
 func registerGetReminderList(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "get_reminder_list",
 		Title:       "Get reminder list",
 		Description: "Fetch one reminder list by ID. " + UserDataNotice,
@@ -73,7 +71,7 @@ type CreateReminderListOutput struct {
 }
 
 func registerCreateReminderList(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "create_reminder_list",
 		Title:       "Create reminder list",
 		Description: "Create a new reminder list in the named source.",
@@ -101,7 +99,7 @@ type UpdateReminderListOutput struct {
 }
 
 func registerUpdateReminderList(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "update_reminder_list",
 		Title:       "Update reminder list",
 		Description: "Rename or recolor a reminder list. Omit any field to leave it unchanged.",
@@ -135,7 +133,7 @@ type DeleteReminderListOutput struct {
 }
 
 func registerDeleteReminderList(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "delete_reminder_list",
 		Title:       "Delete reminder list",
 		Description: "Permanently delete a reminder list and all its reminders. Destructive — confirm with the user before calling.",

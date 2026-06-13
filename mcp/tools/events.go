@@ -24,7 +24,7 @@ type ListEventsOutput struct {
 }
 
 func registerListEvents(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "list_events",
 		Title:       "List events",
 		Description: "List calendar events in a time range. " + DateDoc + " " + UserDataNotice,
@@ -59,7 +59,7 @@ type GetEventOutput struct {
 }
 
 func registerGetEvent(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "get_event",
 		Title:       "Get event",
 		Description: "Fetch one event by ID. " + UserDataNotice,
@@ -95,7 +95,7 @@ type CreateEventOutput struct {
 }
 
 func registerCreateEvent(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "create_event",
 		Title:       "Create event",
 		Description: "Create a calendar event. " + DateDoc,
@@ -140,7 +140,7 @@ type UpdateEventOutput struct {
 }
 
 func registerUpdateEvent(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "update_event",
 		Title:       "Update event",
 		Description: "Patch an event. Only fields you set are changed. " + DateDoc,
@@ -202,7 +202,7 @@ type DeleteEventOutput struct {
 }
 
 func registerDeleteEvent(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "delete_event",
 		Title:       "Delete event",
 		Description: "Permanently delete an event. Destructive — confirm with the user before calling.",
@@ -230,7 +230,7 @@ type BatchDeleteEventsOutput struct {
 }
 
 func registerBatchDeleteEvents(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "batch_delete_events",
 		Title:       "Batch delete events",
 		Description: "Delete multiple events in one call. Per-ID results are returned. Destructive — confirm with the user.",

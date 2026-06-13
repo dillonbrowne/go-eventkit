@@ -63,7 +63,7 @@ type SearchOutput struct {
 }
 
 func registerSearch(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:  "search",
 		Title: "Search calendar & reminders",
 		Description: "Search the user's calendar events and reminders by text. Returns a list of " +
@@ -138,7 +138,7 @@ type FetchOutput struct {
 }
 
 func registerFetch(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:  "fetch",
 		Title: "Fetch a calendar event or reminder",
 		Description: "Retrieve the full details of a single event or reminder by the opaque id " +

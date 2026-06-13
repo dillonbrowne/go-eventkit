@@ -18,13 +18,11 @@ type ListCalendarsOutput struct {
 }
 
 func registerListCalendars(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "list_calendars",
 		Title:       "List calendars",
 		Description: "List the macOS calendars visible under the REST policy (iCloud, Google, Exchange, local, etc.). " + UserDataNotice,
 		Annotations: readOnly(),
-		// Explicit no-arg schema so ChatGPT sees "properties":{}; see emptyObjectSchema.
-		InputSchema: emptyObjectSchema(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListCalendarsInput) (*mcp.CallToolResult, ListCalendarsOutput, error) {
 		cals, err := c.ListCalendars(ctx)
 		if err != nil {
@@ -45,7 +43,7 @@ type GetCalendarOutput struct {
 }
 
 func registerGetCalendar(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "get_calendar",
 		Title:       "Get calendar",
 		Description: "Fetch one calendar by ID. " + UserDataNotice,
@@ -75,7 +73,7 @@ type CreateCalendarOutput struct {
 }
 
 func registerCreateCalendar(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "create_calendar",
 		Title:       "Create calendar",
 		Description: "Create a new calendar in the named source.",
@@ -104,7 +102,7 @@ type UpdateCalendarOutput struct {
 }
 
 func registerUpdateCalendar(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "update_calendar",
 		Title:       "Update calendar",
 		Description: "Rename or recolor a calendar. Omit any field to leave it unchanged.",
@@ -139,7 +137,7 @@ type DeleteCalendarOutput struct {
 }
 
 func registerDeleteCalendar(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "delete_calendar",
 		Title:       "Delete calendar",
 		Description: "Permanently delete a calendar and all its events. This is destructive — confirm with the user before calling.",

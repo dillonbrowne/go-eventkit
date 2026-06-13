@@ -25,7 +25,7 @@ type ListRemindersOutput struct {
 }
 
 func registerListReminders(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "list_reminders",
 		Title:       "List reminders",
 		Description: "List reminders, optionally filtered by list / completion / search / due date. " + DateDoc + " " + UserDataNotice,
@@ -60,7 +60,7 @@ type GetReminderOutput struct {
 }
 
 func registerGetReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "get_reminder",
 		Title:       "Get reminder",
 		Description: "Fetch one reminder by ID. " + UserDataNotice,
@@ -94,7 +94,7 @@ type CreateReminderOutput struct {
 }
 
 func registerCreateReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "create_reminder",
 		Title:       "Create reminder",
 		Description: "Create a reminder in the named list. " + DateDoc,
@@ -140,7 +140,7 @@ type UpdateReminderOutput struct {
 }
 
 func registerUpdateReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "update_reminder",
 		Title:       "Update reminder",
 		Description: "Patch a reminder. Omit a field to leave it unchanged. " + DateDoc,
@@ -196,7 +196,7 @@ type DeleteReminderOutput struct {
 }
 
 func registerDeleteReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "delete_reminder",
 		Title:       "Delete reminder",
 		Description: "Permanently delete a reminder. Destructive — confirm with the user before calling.",
@@ -222,7 +222,7 @@ type CompleteReminderOutput struct {
 }
 
 func registerCompleteReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "complete_reminder",
 		Title:       "Complete reminder",
 		Description: "Mark a reminder complete. Idempotent.",
@@ -249,7 +249,7 @@ type UncompleteReminderOutput struct {
 }
 
 func registerUncompleteReminder(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "uncomplete_reminder",
 		Title:       "Uncomplete reminder",
 		Description: "Mark a reminder incomplete. Idempotent.",
@@ -276,7 +276,7 @@ type BatchDeleteRemindersOutput struct {
 }
 
 func registerBatchDeleteReminders(s *mcp.Server, c *client.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+	addTool(s, &mcp.Tool{
 		Name:        "batch_delete_reminders",
 		Title:       "Batch delete reminders",
 		Description: "Delete multiple reminders in one call. Per-ID results are returned. Destructive — confirm with the user.",
