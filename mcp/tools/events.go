@@ -27,7 +27,7 @@ func registerListEvents(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "list_events",
 		Title:       "List events",
-		Description: "List calendar events in a time range. " + DateDoc + " " + UserDataNotice,
+		Description: "List calendar events in a time range. " + DateDoc,
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in ListEventsInput) (*mcp.CallToolResult, ListEventsOutput, error) {
 		start, err := ParseDateRequired("start", in.Start)
@@ -62,7 +62,7 @@ func registerGetEvent(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "get_event",
 		Title:       "Get event",
-		Description: "Fetch one event by ID. " + UserDataNotice,
+		Description: "Fetch one event by ID.",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in GetEventInput) (*mcp.CallToolResult, GetEventOutput, error) {
 		if in.ID == "" {

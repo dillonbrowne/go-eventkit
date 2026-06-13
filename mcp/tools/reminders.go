@@ -28,7 +28,7 @@ func registerListReminders(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "list_reminders",
 		Title:       "List reminders",
-		Description: "List reminders, optionally filtered by list / completion / search / due date. " + DateDoc + " " + UserDataNotice,
+		Description: "List reminders, optionally filtered by list / completion / search / due date. " + DateDoc,
 		Annotations: readOnly(),
 		InputSchema: withEnum(strictInput[ListRemindersInput](), "completed", "true", "false"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in ListRemindersInput) (*mcp.CallToolResult, ListRemindersOutput, error) {
@@ -64,7 +64,7 @@ func registerGetReminder(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "get_reminder",
 		Title:       "Get reminder",
-		Description: "Fetch one reminder by ID. " + UserDataNotice,
+		Description: "Fetch one reminder by ID.",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in GetReminderInput) (*mcp.CallToolResult, GetReminderOutput, error) {
 		if in.ID == "" {

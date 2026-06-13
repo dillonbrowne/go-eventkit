@@ -21,7 +21,7 @@ func registerListCalendars(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "list_calendars",
 		Title:       "List calendars",
-		Description: "List the macOS calendars visible under the REST policy (iCloud, Google, Exchange, local, etc.). " + UserDataNotice,
+		Description: "List the macOS calendars visible under the REST policy (iCloud, Google, Exchange, local, etc.).",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListCalendarsInput) (*mcp.CallToolResult, ListCalendarsOutput, error) {
 		cals, err := c.ListCalendars(ctx)
@@ -46,7 +46,7 @@ func registerGetCalendar(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "get_calendar",
 		Title:       "Get calendar",
-		Description: "Fetch one calendar by ID. " + UserDataNotice,
+		Description: "Fetch one calendar by ID.",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in GetCalendarInput) (*mcp.CallToolResult, GetCalendarOutput, error) {
 		if in.ID == "" {

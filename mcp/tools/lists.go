@@ -21,7 +21,7 @@ func registerListReminderLists(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "list_reminder_lists",
 		Title:       "List reminder lists",
-		Description: "List the reminder lists visible under the active REST policy. " + UserDataNotice,
+		Description: "List the reminder lists visible under the active REST policy.",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ ListReminderListsInput) (*mcp.CallToolResult, ListReminderListsOutput, error) {
 		ls, err := c.ListReminderLists(ctx)
@@ -45,7 +45,7 @@ func registerGetReminderList(s *mcp.Server, c *client.Client) {
 	addTool(s, &mcp.Tool{
 		Name:        "get_reminder_list",
 		Title:       "Get reminder list",
-		Description: "Fetch one reminder list by ID. " + UserDataNotice,
+		Description: "Fetch one reminder list by ID.",
 		Annotations: readOnly(),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in GetReminderListInput) (*mcp.CallToolResult, GetReminderListOutput, error) {
 		if in.ID == "" {
