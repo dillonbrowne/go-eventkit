@@ -14,7 +14,7 @@ import (
 type ListRemindersInput struct {
 	List      string `json:"list,omitempty" jsonschema:"Filter by list name"`
 	ListID    string `json:"listID,omitempty" jsonschema:"Filter by list identifier"`
-	Completed string `json:"completed,omitempty" jsonschema:"'true' for completed only, 'false' for incomplete only, omit for both" jsonschema_enum:",true,false"`
+	Completed string `json:"completed,omitempty" jsonschema:"Filter by completion: 'true' (completed only) or 'false' (incomplete only); omit for both"`
 	Search    string `json:"search,omitempty"`
 	DueBefore string `json:"dueBefore,omitempty" jsonschema:"Only reminders due before this. Accepts ISO 8601 or natural language."`
 	DueAfter  string `json:"dueAfter,omitempty" jsonschema:"Only reminders due after this. Accepts ISO 8601 or natural language."`
@@ -30,6 +30,7 @@ func registerListReminders(s *mcp.Server, c *client.Client) {
 		Title:       "List reminders",
 		Description: "List reminders, optionally filtered by list / completion / search / due date. " + DateDoc + " " + UserDataNotice,
 		Annotations: readOnly(),
+		InputSchema: withEnum(strictInput[ListRemindersInput](), "completed", "true", "false"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in ListRemindersInput) (*mcp.CallToolResult, ListRemindersOutput, error) {
 		due1, err := ParseDate(in.DueBefore)
 		if err != nil {
@@ -85,7 +86,7 @@ type CreateReminderInput struct {
 	Notes        string `json:"notes,omitempty"`
 	DueDate      string `json:"dueDate,omitempty" jsonschema:"When the reminder is due. Accepts ISO 8601 or natural language (e.g. tomorrow 5pm)."`
 	RemindMeDate string `json:"remindMeDate,omitempty" jsonschema:"When to fire the notification alarm (independent of due date)."`
-	Priority     int    `json:"priority,omitempty" jsonschema:"Priority. Use 0 (none), 1 (high), 5 (medium), or 9 (low)." jsonschema_enum:"0,1,5,9"`
+	Priority     int    `json:"priority,omitempty" jsonschema:"Priority: 0=none, 1=high, 5=medium, 9=low (output renders these as none/high/medium/low)"`
 	URL          string `json:"url,omitempty"`
 	Flagged      bool   `json:"flagged,omitempty"`
 }
@@ -99,6 +100,7 @@ func registerCreateReminder(s *mcp.Server, c *client.Client) {
 		Title:       "Create reminder",
 		Description: "Create a reminder in the named list. " + DateDoc,
 		Annotations: nonDestructiveWrite(),
+		InputSchema: withEnum(strictInput[CreateReminderInput](), "priority", 0, 1, 5, 9),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in CreateReminderInput) (*mcp.CallToolResult, CreateReminderOutput, error) {
 		due, err := ParseDatePtr(in.DueDate)
 		if err != nil {
@@ -145,6 +147,7 @@ func registerUpdateReminder(s *mcp.Server, c *client.Client) {
 		Title:       "Update reminder",
 		Description: "Patch a reminder. Omit a field to leave it unchanged. " + DateDoc,
 		Annotations: idempotentWrite(),
+		InputSchema: withEnum(strictInput[UpdateReminderInput](), "priority", 0, 1, 5, 9),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in UpdateReminderInput) (*mcp.CallToolResult, UpdateReminderOutput, error) {
 		if in.ID == "" {
 			return nil, UpdateReminderOutput{}, errors.New("id is required")

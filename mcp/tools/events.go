@@ -145,6 +145,7 @@ func registerUpdateEvent(s *mcp.Server, c *client.Client) {
 		Title:       "Update event",
 		Description: "Patch an event. Only fields you set are changed. " + DateDoc,
 		Annotations: idempotentWrite(),
+		InputSchema: withEnum(strictInput[UpdateEventInput](), "span", "this", "future"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in UpdateEventInput) (*mcp.CallToolResult, UpdateEventOutput, error) {
 		if in.ID == "" {
 			return nil, UpdateEventOutput{}, errors.New("id is required")
@@ -207,6 +208,7 @@ func registerDeleteEvent(s *mcp.Server, c *client.Client) {
 		Title:       "Delete event",
 		Description: "Permanently delete an event. Destructive — confirm with the user before calling.",
 		Annotations: destructive(),
+		InputSchema: withEnum(strictInput[DeleteEventInput](), "span", "this", "future"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in DeleteEventInput) (*mcp.CallToolResult, DeleteEventOutput, error) {
 		if in.ID == "" {
 			return nil, DeleteEventOutput{}, errors.New("id is required")
@@ -235,6 +237,7 @@ func registerBatchDeleteEvents(s *mcp.Server, c *client.Client) {
 		Title:       "Batch delete events",
 		Description: "Delete multiple events in one call. Per-ID results are returned. Destructive — confirm with the user.",
 		Annotations: destructive(),
+		InputSchema: withEnum(strictInput[BatchDeleteEventsInput](), "span", "this", "future"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in BatchDeleteEventsInput) (*mcp.CallToolResult, BatchDeleteEventsOutput, error) {
 		if len(in.IDs) == 0 {
 			return nil, BatchDeleteEventsOutput{}, errors.New("ids must not be empty")
