@@ -15,7 +15,7 @@ type ListRemindersInput struct {
 	List      string `json:"list,omitempty" jsonschema:"Filter by list name"`
 	ListID    string `json:"listID,omitempty" jsonschema:"Filter by list identifier"`
 	Completed string `json:"completed,omitempty" jsonschema:"Filter by completion: 'true' (completed only) or 'false' (incomplete only); omit for both"`
-	Search    string `json:"search,omitempty"`
+	Search    string `json:"search,omitempty" jsonschema:"Substring match against title / notes"`
 	DueBefore string `json:"dueBefore,omitempty" jsonschema:"Only reminders due before this. Accepts ISO 8601 or natural language."`
 	DueAfter  string `json:"dueAfter,omitempty" jsonschema:"Only reminders due after this. Accepts ISO 8601 or natural language."`
 }
@@ -83,12 +83,12 @@ func registerGetReminder(s *mcp.Server, c *client.Client) {
 type CreateReminderInput struct {
 	Title        string `json:"title" jsonschema:"Reminder title"`
 	List         string `json:"list" jsonschema:"Target list name (from list_reminder_lists)"`
-	Notes        string `json:"notes,omitempty"`
+	Notes        string `json:"notes,omitempty" jsonschema:"Free-form notes / description"`
 	DueDate      string `json:"dueDate,omitempty" jsonschema:"When the reminder is due. Accepts ISO 8601 or natural language (e.g. tomorrow 5pm)."`
 	RemindMeDate string `json:"remindMeDate,omitempty" jsonschema:"When to fire the notification alarm (independent of due date)."`
 	Priority     int    `json:"priority,omitempty" jsonschema:"Priority: 0=none, 1=high, 5=medium, 9=low (output renders these as none/high/medium/low)"`
-	URL          string `json:"url,omitempty"`
-	Flagged      bool   `json:"flagged,omitempty"`
+	URL          string `json:"url,omitempty" jsonschema:"Associated URL"`
+	Flagged      bool   `json:"flagged,omitempty" jsonschema:"Flag the reminder"`
 }
 type CreateReminderOutput struct {
 	Reminder RedactedReminder `json:"reminder"`
@@ -126,16 +126,16 @@ func registerCreateReminder(s *mcp.Server, c *client.Client) {
 
 type UpdateReminderInput struct {
 	ID           string `json:"id" jsonschema:"Reminder identifier"`
-	Title        string `json:"title,omitempty"`
-	Notes        string `json:"notes,omitempty"`
+	Title        string `json:"title,omitempty" jsonschema:"New title"`
+	Notes        string `json:"notes,omitempty" jsonschema:"New notes / description"`
 	List         string `json:"list,omitempty" jsonschema:"Move to a different list"`
 	DueDate      string `json:"dueDate,omitempty" jsonschema:"New due date. Accepts ISO 8601 or natural language."`
 	ClearDueDate bool   `json:"clearDueDate,omitempty" jsonschema:"Set true to remove the due date entirely (overrides dueDate)"`
-	RemindMeDate string `json:"remindMeDate,omitempty"`
-	Priority     *int   `json:"priority,omitempty" jsonschema:"Priority. Use 0 (none), 1 (high), 5 (medium), or 9 (low)."`
-	Completed    *bool  `json:"completed,omitempty"`
-	Flagged      *bool  `json:"flagged,omitempty"`
-	URL          string `json:"url,omitempty"`
+	RemindMeDate string `json:"remindMeDate,omitempty" jsonschema:"When to fire the notification alarm. Accepts ISO 8601 or natural language."`
+	Priority     *int   `json:"priority,omitempty" jsonschema:"Priority: 0=none, 1=high, 5=medium, 9=low (output renders these as none/high/medium/low)"`
+	Completed    *bool  `json:"completed,omitempty" jsonschema:"Set completion state (true = completed)"`
+	Flagged      *bool  `json:"flagged,omitempty" jsonschema:"Set flag state"`
+	URL          string `json:"url,omitempty" jsonschema:"Associated URL"`
 }
 type UpdateReminderOutput struct {
 	Reminder RedactedReminder `json:"reminder"`

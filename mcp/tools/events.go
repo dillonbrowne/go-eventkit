@@ -84,9 +84,9 @@ type CreateEventInput struct {
 	EndDate   string `json:"endDate" jsonschema:"When the event ends."`
 	Calendar  string `json:"calendar" jsonschema:"Target calendar name (from list_calendars). Must be writable under the active policy."`
 	AllDay    bool   `json:"allDay,omitempty" jsonschema:"All-day event (use date-only for start/end)"`
-	Location  string `json:"location,omitempty"`
-	Notes     string `json:"notes,omitempty"`
-	URL       string `json:"url,omitempty"`
+	Location  string `json:"location,omitempty" jsonschema:"Event location (free text)"`
+	Notes     string `json:"notes,omitempty" jsonschema:"Free-form notes / description"`
+	URL       string `json:"url,omitempty" jsonschema:"Associated URL"`
 	TimeZone  string `json:"timeZone,omitempty" jsonschema:"IANA timezone, e.g. America/New_York. Omit for the user's default."`
 }
 
@@ -125,14 +125,14 @@ func registerCreateEvent(s *mcp.Server, c *client.Client) {
 type UpdateEventInput struct {
 	ID        string `json:"id" jsonschema:"Event identifier"`
 	Span      string `json:"span,omitempty" jsonschema:"For recurring events: 'this' (default) or 'future'"`
-	Title     string `json:"title,omitempty"`
+	Title     string `json:"title,omitempty" jsonschema:"New title"`
 	StartDate string `json:"startDate,omitempty" jsonschema:"New start. Accepts ISO 8601 or natural language."`
-	EndDate   string `json:"endDate,omitempty"`
+	EndDate   string `json:"endDate,omitempty" jsonschema:"New end. Accepts ISO 8601 or natural language."`
 	Calendar  string `json:"calendar,omitempty" jsonschema:"Move to a different calendar"`
-	Location  string `json:"location,omitempty"`
-	Notes     string `json:"notes,omitempty"`
-	URL       string `json:"url,omitempty"`
-	TimeZone  string `json:"timeZone,omitempty"`
+	Location  string `json:"location,omitempty" jsonschema:"New location (free text)"`
+	Notes     string `json:"notes,omitempty" jsonschema:"New notes / description"`
+	URL       string `json:"url,omitempty" jsonschema:"Associated URL"`
+	TimeZone  string `json:"timeZone,omitempty" jsonschema:"IANA timezone, e.g. America/New_York"`
 }
 
 type UpdateEventOutput struct {

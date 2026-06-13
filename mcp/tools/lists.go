@@ -91,8 +91,8 @@ func registerCreateReminderList(s *mcp.Server, c *client.Client) {
 
 type UpdateReminderListInput struct {
 	ID    string `json:"id" jsonschema:"List identifier"`
-	Title string `json:"title,omitempty"`
-	Color string `json:"color,omitempty"`
+	Title string `json:"title,omitempty" jsonschema:"New title (omit to leave unchanged)"`
+	Color string `json:"color,omitempty" jsonschema:"New hex color, e.g. #FF0000 (omit to leave unchanged)"`
 }
 type UpdateReminderListOutput struct {
 	List RedactedList `json:"list"`
