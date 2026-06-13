@@ -121,16 +121,40 @@ func TestServer_ListToolsCount(t *testing.T) {
 	}
 }
 
-// TestServer_AllToolsHavePropertiesKey guards ChatGPT compatibility. The
-// go-sdk infers a tool's input schema from its Go input struct; for an
-// empty struct (e.g. list_calendars' `struct{}`) it leaves Properties nil,
-// which the jsonschema marshaler omits — yielding a schema with no
-// "properties" key. Claude accepts that; ChatGPT's stricter validation can
-// reject such a tool and surface *no* tools at all ("connector adds OK but
-// nothing appears"). Every tool must therefore emit an explicit object
-// schema with a "properties" key. The no-arg tools set it via
-// emptyObjectSchema(); this test fails if a new empty-input tool forgets.
-func TestServer_AllToolsHavePropertiesKey(t *testing.T) {
+// schemaTypeSet returns the JSON-schema "type" of a property as a set,
+// whether it was a single string or a []string union.
+func schemaTypeSet(prop map[string]any) map[string]bool {
+	out := map[string]bool{}
+	switch tv := prop["type"].(type) {
+	case string:
+		out[tv] = true
+	case []any:
+		for _, x := range tv {
+			if s, ok := x.(string); ok {
+				out[s] = true
+			}
+		}
+	}
+	return out
+}
+
+// TestServer_ToolSchemaContract is the dual-client compatibility guard. For
+// every tool it asserts the strict-compatible invariants that keep both
+// ChatGPT (OpenAI) and Claude (Anthropic) happy:
+//
+//   - input schema is an object with an explicit "properties" key (ChatGPT
+//     rejects an object schema lacking it — "adds OK but no tools appear");
+//   - additionalProperties is false;
+//   - every "required" entry is an actual property (required ⊆ properties);
+//   - every OPTIONAL property is nullable (so an OpenAI client may pass null)
+//     while required fields stay single-typed (so omitting them is the only
+//     way to leave them unset, which the go-sdk validator demands);
+//   - the fixed-vocabulary fields carry the right enum;
+//   - annotation hints are present and self-consistent.
+//
+// A new tool that regresses any of these fails here rather than silently
+// breaking one of the two clients in production.
+func TestServer_ToolSchemaContract(t *testing.T) {
 	rest := fakeREST(t)
 	defer rest.Close()
 	cs := connect(t, rest.URL)
@@ -139,20 +163,92 @@ func TestServer_AllToolsHavePropertiesKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	for _, tt := range got.Tools {
-		b, err := json.Marshal(tt.InputSchema)
+
+	// Expected enum members for the constrained fields, by tool+field.
+	wantEnum := map[string]map[string][]any{
+		"update_event":        {"span": {"this", "future"}},
+		"delete_event":        {"span": {"this", "future"}},
+		"batch_delete_events": {"span": {"this", "future"}},
+		"create_reminder":     {"priority": {0.0, 1.0, 5.0, 9.0}},
+		"update_reminder":     {"priority": {0.0, 1.0, 5.0, 9.0}},
+		"list_reminders":      {"completed": {"true", "false"}},
+	}
+
+	for _, tool := range got.Tools {
+		b, err := json.Marshal(tool.InputSchema)
 		if err != nil {
-			t.Fatalf("%s: marshal inputSchema: %v", tt.Name, err)
+			t.Fatalf("%s: marshal inputSchema: %v", tool.Name, err)
 		}
 		var sch map[string]any
 		if err := json.Unmarshal(b, &sch); err != nil {
-			t.Fatalf("%s: decode inputSchema: %v (raw: %s)", tt.Name, err, b)
+			t.Fatalf("%s: decode inputSchema: %v (raw: %s)", tool.Name, err, b)
 		}
+
 		if sch["type"] != "object" {
-			t.Errorf("%s: inputSchema type = %v, want object", tt.Name, sch["type"])
+			t.Errorf("%s: inputSchema type = %v, want object", tool.Name, sch["type"])
 		}
-		if _, ok := sch["properties"]; !ok {
-			t.Errorf("%s: inputSchema missing \"properties\" key — ChatGPT may reject the whole tool list (raw: %s)", tt.Name, b)
+		props, ok := sch["properties"].(map[string]any)
+		if !ok {
+			t.Errorf("%s: inputSchema missing \"properties\" object (ChatGPT may drop the whole tool list)", tool.Name)
+			continue
+		}
+		if sch["additionalProperties"] != false {
+			t.Errorf("%s: additionalProperties = %v, want false", tool.Name, sch["additionalProperties"])
+		}
+
+		required := map[string]bool{}
+		if rs, ok := sch["required"].([]any); ok {
+			for _, r := range rs {
+				name := r.(string)
+				required[name] = true
+				if _, exists := props[name]; !exists {
+					t.Errorf("%s: required lists %q which is not a property", tool.Name, name)
+				}
+			}
+		}
+
+		for name, raw := range props {
+			prop := raw.(map[string]any)
+			ts := schemaTypeSet(prop)
+			if required[name] {
+				if ts["null"] {
+					t.Errorf("%s.%s: required field must not be nullable (type %v)", tool.Name, name, prop["type"])
+				}
+			} else if len(ts) > 0 && !ts["null"] {
+				t.Errorf("%s.%s: optional field must be nullable (type %v)", tool.Name, name, prop["type"])
+			}
+		}
+
+		for field, want := range wantEnum[tool.Name] {
+			prop, ok := props[field].(map[string]any)
+			if !ok {
+				t.Errorf("%s: expected field %q", tool.Name, field)
+				continue
+			}
+			enum, _ := prop["enum"].([]any)
+			have := map[any]bool{}
+			for _, e := range enum {
+				have[e] = true
+			}
+			for _, w := range want {
+				if !have[w] {
+					t.Errorf("%s.%s: enum %v missing %v", tool.Name, field, enum, w)
+				}
+			}
+			if !have[nil] {
+				t.Errorf("%s.%s: nullable enum should include null: %v", tool.Name, field, enum)
+			}
+		}
+
+		// Annotation hints present + self-consistent.
+		a := tool.Annotations
+		if a == nil {
+			t.Errorf("%s: missing annotations", tool.Name)
+			continue
+		}
+		destructive := a.DestructiveHint != nil && *a.DestructiveHint
+		if a.ReadOnlyHint && destructive {
+			t.Errorf("%s: tool is both readOnly and destructive", tool.Name)
 		}
 	}
 }

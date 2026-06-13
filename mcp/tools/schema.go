@@ -48,6 +48,28 @@ func withEnum(s *jsonschema.Schema, field string, values ...any) *jsonschema.Sch
 	return s
 }
 
+// makeNonNullable strips "null" from a schema's type set, collapsing a
+// single remaining type back to the scalar Type field. Used on required
+// properties, which reflection may have rendered nullable (slices/pointers).
+func makeNonNullable(s *jsonschema.Schema) {
+	if s == nil || len(s.Types) == 0 {
+		return
+	}
+	kept := s.Types[:0:0]
+	for _, t := range s.Types {
+		if t != "null" {
+			kept = append(kept, t)
+		}
+	}
+	switch len(kept) {
+	case 1:
+		s.Type = kept[0]
+		s.Types = nil
+	default:
+		s.Types = kept
+	}
+}
+
 func schemaIsNullable(s *jsonschema.Schema) bool {
 	if s.Type == "null" {
 		return true
@@ -79,7 +101,11 @@ func makeStrictCompat(s *jsonschema.Schema) {
 		}
 		for name, prop := range s.Properties {
 			makeStrictCompat(prop) // handle nested schemas first
-			if !required[name] {
+			if required[name] {
+				// Reflection renders Go slices/pointers as nullable; a
+				// required field must not accept null.
+				makeNonNullable(prop)
+			} else {
 				makeNullable(prop)
 			}
 		}
