@@ -343,6 +343,7 @@ go run -tags integration ./scripts/benchmark.go
 `cmd/eventkit-mcp` is a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server that exposes 26 curated tools over the REST API — works with Claude Desktop, Continue, Cline (locally) and Claude web, Claude mobile, ChatGPT custom connectors (when tunneled). The 24 CRUD tools are joined by `search` + `fetch`, the two tools ChatGPT's Deep Research / standard-connector mode requires; for full read+write in ChatGPT, enable **Developer Mode** (see the [operator playbook](docs/operator-playbook.md#connecting-from-chatgpt)).
 
 Highlights:
+- **Strict-compatible schemas for both OpenAI and Anthropic** — every tool input is an object with explicit `properties` + `additionalProperties:false`, optionals are nullable (so ChatGPT may pass `null`) while `required` stays minimal (so Claude can omit them), and fixed-vocabulary fields (`span`, `priority`, `completed`) carry enums. Guarded by a schema-contract test.
 - Translates each tool call to one REST request on `127.0.0.1:8765` (inherits the REST middleware: policy, rate limit, idempotency, audit).
 - Accepts natural-language date strings (`tomorrow 2pm`, `next friday`, `eod`) via the `dateparser` package.
 - Wraps user-controlled strings in `<USER_DATA>…</USER_DATA>` delimiters and truncates to 512 chars before returning them to the LLM, to harden against prompt injection from shared/invited calendar content.
@@ -355,7 +356,7 @@ brew services start eventkit-mcp
 curl -s -H "Content-Type: application/json" \
      http://127.0.0.1:8766/mcp \
      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
-# → 24 tool names
+# → 26 tool names
 ```
 
 See [`docs/operator-playbook.md`](docs/operator-playbook.md) and [`docs/prd/mcp-threats.md`](docs/prd/mcp-threats.md) for full setup and threat model.

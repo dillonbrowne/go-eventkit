@@ -97,6 +97,8 @@ Rate limiting protects iCloud sync from a runaway agent. Idempotency-Key support
 
 `eventkit-mcp` is a separate binary that exposes the REST API as a [Streamable HTTP MCP](https://modelcontextprotocol.io/) server. AI clients (Claude Desktop, Continue, Cline locally; Claude web, Claude mobile, ChatGPT custom connectors via tunnel) call 26 curated tools that translate to REST requests on `127.0.0.1:8765`: 24 CRUD tools plus `search` + `fetch` (the two tools ChatGPT's Deep Research / standard connector mode requires).
 
+Every tool's input schema is **strict-compatible with both OpenAI (ChatGPT) and Anthropic (Claude)**: an object with an explicit `properties` map and `additionalProperties: false`, optional fields rendered nullable (`type: ["x","null"]`) so an OpenAI client may pass an explicit null, `required` limited to genuinely-required fields so a client that omits optionals still validates, and enums on the fixed-vocabulary fields (`span`, `priority`, `completed`). A schema-contract test enforces this so it can't silently regress.
+
 ### Install + run
 
 ```sh
@@ -110,7 +112,7 @@ It listens on `127.0.0.1:8766` with **no auth**. Verify:
 curl -s -H "Content-Type: application/json" \
      http://127.0.0.1:8766/mcp \
      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
-# → 24 tool names (list_calendars, create_event, complete_reminder, …)
+# → 26 tool names (list_calendars, create_event, complete_reminder, search, fetch, …)
 ```
 
 ### Local clients

@@ -15,10 +15,22 @@
 //
 // # Tool surface
 //
-// 26 tools mirroring the REST surface (incl. search + fetch for ChatGPT), one per OperationID. Tools that
-// only read are tagged with the MCP "readOnlyHint"; tools that delete
-// get "destructiveHint"; reversible writes get "idempotentHint". All
-// 24 carry "openWorldHint" because they touch macOS state.
+// 26 tools mirroring the REST surface (24 CRUD tools plus search + fetch
+// for ChatGPT Deep Research), one per OperationID. Tools that only read are
+// tagged with the MCP "readOnlyHint"; tools that delete get
+// "destructiveHint"; reversible writes get "idempotentHint". All carry
+// "openWorldHint" because they touch macOS state.
+//
+// # Schema compatibility (OpenAI + Anthropic)
+//
+// Every tool's input schema is "strict-compatible" with both ChatGPT and
+// Claude: it is an object with an explicit properties map and
+// additionalProperties:false, optional fields are rendered nullable
+// (type:["x","null"]) so an OpenAI client may pass an explicit null, and
+// only genuinely-required fields appear in "required" so a client that omits
+// optionals still passes the SDK's validation. Fixed-vocabulary fields
+// (span, priority, completed) carry enums. The transform lives in
+// tools.strictInput and is enforced by TestServer_ToolSchemaContract.
 //
 // # Natural-language dates
 //

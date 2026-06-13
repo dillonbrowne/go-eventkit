@@ -10,7 +10,7 @@ import (
 
 // DateDoc is the standard hint appended to tool descriptions whose
 // inputs include a date string. Keeps the wording consistent across the
-// 24 tools and easy to update in one place.
+// date-accepting tools and easy to update in one place.
 const DateDoc = "Dates accept ISO 8601 (e.g. `2026-05-26T15:00:00Z`) or natural language (`tomorrow 2pm`, `next friday`, `eod`, `in 2 hours`)."
 
 // dateParseOpts is the canonical parser configuration used by all MCP
