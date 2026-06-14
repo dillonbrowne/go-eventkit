@@ -165,10 +165,19 @@ func (f *CalFake) DeleteEvent(id string, span calendar.Span) error {
 	return calendar.ErrNotFound
 }
 
+// DeleteEvents mirrors the real EventKit bridge: it returns only the ids that
+// FAILED to delete (a fully successful batch returns a nil/empty map). The
+// scoped layer is responsible for marking successes "ok"; faking that here
+// would hide regressions in it.
 func (f *CalFake) DeleteEvents(ids []string, span calendar.Span) map[string]error {
-	out := make(map[string]error, len(ids))
+	var out map[string]error
 	for _, id := range ids {
-		out[id] = f.DeleteEvent(id, span)
+		if err := f.DeleteEvent(id, span); err != nil {
+			if out == nil {
+				out = make(map[string]error)
+			}
+			out[id] = err
+		}
 	}
 	return out
 }
@@ -387,10 +396,17 @@ func (f *RemFake) DeleteReminder(id string) error {
 	return reminders.ErrNotFound
 }
 
+// DeleteReminders mirrors the real bridge: only failed ids are returned (a
+// fully successful batch returns a nil/empty map). See CalFake.DeleteEvents.
 func (f *RemFake) DeleteReminders(ids []string) map[string]error {
-	out := make(map[string]error, len(ids))
+	var out map[string]error
 	for _, id := range ids {
-		out[id] = f.DeleteReminder(id)
+		if err := f.DeleteReminder(id); err != nil {
+			if out == nil {
+				out = make(map[string]error)
+			}
+			out[id] = err
+		}
 	}
 	return out
 }

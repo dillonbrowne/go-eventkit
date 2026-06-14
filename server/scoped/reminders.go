@@ -272,6 +272,13 @@ func (s *ScopedReminders) DeleteReminders(ids []string) map[string]error {
 	if len(pass) == 0 {
 		return out
 	}
+	// The bridge reports only failures, so pre-mark every attempted id as a
+	// success and overlay any failures it returns. Without this, a fully
+	// successful batch yields an empty results map and the caller cannot tell
+	// which ids were actually deleted.
+	for _, id := range pass {
+		out[id] = nil
+	}
 	for id, err := range s.bridge.DeleteReminders(pass) {
 		out[id] = err
 	}

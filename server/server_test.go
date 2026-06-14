@@ -433,6 +433,33 @@ func TestServer_BatchDeleteEvents_Partitions(t *testing.T) {
 	}
 }
 
+func TestServer_BatchDeleteReminders_Partitions(t *testing.T) {
+	srv, _, _ := newTestServer(t)
+	rr := do(t, srv, http.MethodPost, "/v1/reminders/batch-delete", map[string]any{
+		"ids": []string{"R-1", "R-ARC", "R-OUT", "R-MISSING"},
+	})
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body = %s", rr.Code, rr.Body.String())
+	}
+	var body struct {
+		Results map[string]string `json:"results"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	// R-1 is writable and succeeds: it must be reported "ok", not silently
+	// omitted (the real bridge returns only failures — the scoped layer marks
+	// successes).
+	if body.Results["R-1"] != "ok" {
+		t.Errorf("R-1 (writable): result = %q, want 'ok'", body.Results["R-1"])
+	}
+	for _, id := range []string{"R-ARC", "R-OUT", "R-MISSING"} {
+		if body.Results[id] == "" || body.Results[id] == "ok" {
+			t.Errorf("%s: result = %q, want error", id, body.Results[id])
+		}
+	}
+}
+
 func TestServer_ListReminders_FilteredByPolicy(t *testing.T) {
 	srv, _, _ := newTestServer(t)
 	rr := do(t, srv, http.MethodGet, "/v1/reminders", nil)

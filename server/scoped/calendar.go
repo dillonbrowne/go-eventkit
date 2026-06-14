@@ -286,6 +286,13 @@ func (s *ScopedCalendar) DeleteEvents(ids []string, span calendar.Span) map[stri
 	if len(pass) == 0 {
 		return out
 	}
+	// The bridge reports only failures, so pre-mark every attempted id as a
+	// success and overlay any failures it returns. Without this, a fully
+	// successful batch yields an empty results map and the caller cannot tell
+	// which ids were actually deleted.
+	for _, id := range pass {
+		out[id] = nil
+	}
 	for id, err := range s.bridge.DeleteEvents(pass, span) {
 		out[id] = err
 	}
